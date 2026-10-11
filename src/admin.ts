@@ -1,7 +1,7 @@
 import type { Env } from "./types";
 import { ensureSchema, randomId, getSchemaStatus, repairDatabase } from "./db";
 import { generateCodes, makeBatchId, formatCodeStatus, findCodeByString } from "./codes";
-import { getSettings, updateSettings } from "./settings";
+import { getSettings, updateSettings, getStorageUsedBytes, STORAGE_LIMIT_BYTES } from "./settings";
 import { checkAdminKey, createSession, verifySession, clientIp, rateLimitLogin, requireAdminIp } from "./auth";
 import { pickLang } from "./i18n";
 import { hashPassword } from "./public";
@@ -325,6 +325,15 @@ export async function handleAdminApi(
       name = sanitizeName(rawName);
     }
     if (!req.body) return json({ error: msg(req, "请求体为空", "Empty request body") }, 400);
+    // ── 存储容量硬上限：已达 9.9 GB 直接拒绝，避免超额 ──
+    const usedBefore = await getStorageUsedBytes(env);
+    if (usedBefore >= STORAGE_LIMIT_BYTES) {
+      return json({ error: msg(req, "存储空间已满（已达 9.9 GB 上限），上传被拒绝", "Storage is full (9.9 GB limit reached). Upload rejected.") }, 413);
+    }
+    const declaredLen = parseInt(req.headers.get("content-length") || "", 10);
+    if (Number.isFinite(declaredLen) && usedBefore + declaredLen > STORAGE_LIMIT_BYTES) {
+      return json({ error: msg(req, "上传将超出 9.9 GB 存储上限，已拒绝", "Upload would exceed the 9.9 GB storage limit. Rejected.") }, 413);
+    }
     const id = randomId(14);
     const key = `files/${id}`;
     const mime = req.headers.get("content-type") || "application/octet-stream";
@@ -338,6 +347,16 @@ export async function handleAdminApi(
       resultSize = res.size;
     } catch (err: any) {
       return json({ error: msg(req, "存储写入失败", "Storage write failed"), detail: String(err?.message || err) }, 500);
+    }
+    // 大小兜底：流式 body 在部分后端拿不到大小，用 head 补一次
+    if (!resultSize) {
+      const head = await st.head(key).catch(() => null);
+      if (head) resultSize = head.size;
+    }
+    // ── 强制撤回：本次写入把总量顶过 9.9 GB 时，删除刚上传的对象 ──
+    if (usedBefore + resultSize > STORAGE_LIMIT_BYTES) {
+      await st.delete(key).catch(() => {});
+      return json({ error: msg(req, "上传将超出 9.9 GB 存储上限，已强制撤回", "Upload would exceed the 9.9 GB storage limit and was rolled back.") }, 413);
     }
     // ── Bug #4 修复：D1 写入失败时清理已写入的 storage 对象 ──
     try {
