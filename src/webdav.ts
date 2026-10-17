@@ -17,7 +17,7 @@
  */
 
 import type { Env } from "./types";
-import { getSettings } from "./settings";
+import { getSettings, getStorageUsedBytes, STORAGE_LIMIT_BYTES } from "./settings";
 import { sha256Hex, safeEqual, randomHex } from "./crypto";
 import { createStorageProvider, type StorageProvider } from "./storage";
 import { randomId } from "./db";
@@ -570,6 +570,20 @@ async function handleWebDavPut(
   const mime = req.headers.get("content-type") || "application/octet-stream";
   const st = await storage(env);
 
+  // 同名文件（覆盖写）—— 提前查出，用于容量增量核算
+  const existing = await findFile(env, dir, name);
+
+  // ── 存储容量硬上限核验（覆盖写按增量计）──
+  const usedBefore = await getStorageUsedBytes(env);
+  const baseline = usedBefore - (existing?.size ?? 0);
+  if (baseline >= STORAGE_LIMIT_BYTES) {
+    return new Response("Insufficient Storage: 9.9 GB limit reached", { status: 507 });
+  }
+  const declaredLen = parseInt(req.headers.get("content-length") || "", 10);
+  if (Number.isFinite(declaredLen) && baseline + declaredLen > STORAGE_LIMIT_BYTES) {
+    return new Response("Insufficient Storage: upload would exceed the 9.9 GB limit", { status: 507 });
+  }
+
   // 生成文件记录
   const id = randomId(14);
   const key = `files/${id}`;
@@ -585,11 +599,20 @@ async function handleWebDavPut(
   } catch (err: any) {
     return new Response(`Storage error: ${err?.message || err}`, { status: 502 });
   }
+  // 大小兜底：流式 body 在部分后端拿不到大小，用 head 补一次
+  if (!size) {
+    const head = await st.head(key).catch(() => null);
+    if (head) size = head.size;
+  }
 
-  // 检查是否已存在同名文件（覆盖）
-  const existing = await findFile(env, dir, name);
+  // ── 强制撤回：本次写入把总量顶过 9.9 GB 时，删除刚写入的对象 ──
+  if (baseline + size > STORAGE_LIMIT_BYTES) {
+    await st.delete(key).catch(() => {});
+    return new Response("Insufficient Storage: upload rolled back (9.9 GB limit)", { status: 507 });
+  }
+
+  // 覆盖同名文件：删除旧文件 + 关联的 shares
   if (existing) {
-    // 删除旧文件 + 关联的 shares
     try {
       await env.db.batch([
         env.db.prepare("DELETE FROM shares WHERE file_id = ?1").bind(existing.id),
@@ -812,6 +835,12 @@ async function handleWebDavCopy(
   const st = await storage(env);
   const srcObj = await st.get(srcFile.key);
   if (!srcObj) return new Response("Source not found", { status: 404 });
+
+  // ── 存储容量硬上限：复制会新增一份，超限直接拒绝 ──
+  const usedBefore = await getStorageUsedBytes(env);
+  if (usedBefore + srcFile.size > STORAGE_LIMIT_BYTES) {
+    return new Response("Insufficient Storage: copy would exceed the 9.9 GB limit", { status: 507 });
+  }
 
   const newId = randomId(14);
   const newKey = `files/${newId}`;

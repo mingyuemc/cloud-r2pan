@@ -197,6 +197,22 @@ function toInt(v: unknown, fallback: number): number {
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
+/* ═══════════ 存储容量硬上限 ═══════════
+ * R2 免费额度约 10 GB，为避免超额，这里设一个 9.9 GiB 硬上限：
+ *   - 已用 >= 上限         —— 直接拒绝任何新上传（预检）
+ *   - 本次上传会顶过上限   —— 写入后立即删除该对象（强制撤回）
+ * 阈值要调整时改这里即可。
+ */
+export const STORAGE_LIMIT_BYTES = Math.floor(9.9 * 1024 ** 3); // 9.9 GiB
+
+/** 当前已占用的存储总量（字节）—— files 表 size 求和 */
+export async function getStorageUsedBytes(env: Env): Promise<number> {
+  const row = await env.db
+    .prepare("SELECT COALESCE(SUM(size), 0) AS total FROM files")
+    .first<{ total: number }>();
+  return Number(row?.total ?? 0) || 0;
+}
+
 export async function getSettings(env: Env): Promise<Settings> {
   // ① 命中内存缓存 —— 5 秒内直接返回，零 D1 开销
   const now = Date.now();
