@@ -137,6 +137,10 @@ export interface Settings {
   // ═══════ UI 主题 ═══════
   /** 管理后台 UI 主题："light"（默认白色 Apple 风格）或 "dark"（深色原风格） */
   uiTheme: "light" | "dark";
+
+  // ═══════ 成员自助注册 ═══════
+  /** 是否开放成员自助注册（仍需有效的邀请码）。关闭后仅管理员可手动创建成员。 */
+  memberRegistrationEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -190,6 +194,8 @@ export const DEFAULT_SETTINGS: Settings = {
   webdavRootPath: "/",
   // UI 主题 —— 默认白色 Apple 风格
   uiTheme: "light",
+  // 成员自助注册 —— 默认开放（仍需邀请码）；关闭后仅管理员可手动创建
+  memberRegistrationEnabled: true,
 };
 
 function toInt(v: unknown, fallback: number): number {
@@ -288,6 +294,8 @@ export async function getSettings(env: Env): Promise<Settings> {
     webdavRootPath: map.get("webdav_root_path") ?? DEFAULT_SETTINGS.webdavRootPath,
     // UI 主题
     uiTheme: (map.get("ui_theme") ?? DEFAULT_SETTINGS.uiTheme) as Settings["uiTheme"],
+    // 成员自助注册（默认 true）
+    memberRegistrationEnabled: map.get("member_registration_enabled") !== "0",
   };
 
   // ② 写入内存缓存

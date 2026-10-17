@@ -160,6 +160,152 @@ const SCHEMA_STATEMENTS: string[] = [
     path TEXT PRIMARY KEY,
     created_at INTEGER NOT NULL
   )`,
+
+  // ══════════════════════════════════════════════════════════════
+  // 成员与管理员（多用户）
+  // ══════════════════════════════════════════════════════════════
+  // 固定三级角色：super（不可剥夺）/ admin（权限位可配）/ member（固定能力）
+  // 时间戳统一用毫秒（与全库一致），DB 触发器用 unixepoch()*1000 取当前时间。
+  `CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    display_name TEXT NOT NULL DEFAULT '',
+    password_hash TEXT NOT NULL,
+    password_salt TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member' CHECK(role IN ('super', 'admin', 'member')),
+    is_disabled INTEGER NOT NULL DEFAULT 0 CHECK(is_disabled IN (0, 1)),
+    disabled_until INTEGER,
+    quota_bytes INTEGER,
+    session_version INTEGER NOT NULL DEFAULT 0,
+    must_change_password INTEGER NOT NULL DEFAULT 0 CHECK(must_change_password IN (0, 1)),
+    created_by TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    last_login_at INTEGER,
+    deleted_at INTEGER
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_users_role ON users(role, is_disabled)`,
+  // 管理员权限位（仅 role_key = 'admin' 使用）
+  `CREATE TABLE IF NOT EXISTS role_permissions (
+    role_key TEXT NOT NULL,
+    permission_key TEXT NOT NULL,
+    PRIMARY KEY(role_key, permission_key)
+  )`,
+  // 邀请码（手动新建之外的另一路注册入口）
+  `CREATE TABLE IF NOT EXISTS registration_invites (
+    id TEXT PRIMARY KEY,
+    token TEXT NOT NULL UNIQUE,
+    note TEXT NOT NULL DEFAULT '',
+    max_uses INTEGER NOT NULL DEFAULT 1,
+    used_count INTEGER NOT NULL DEFAULT 0,
+    default_role TEXT NOT NULL DEFAULT 'member' CHECK(default_role IN ('admin', 'member')),
+    created_by TEXT,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER,
+    deleted_at INTEGER
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_registration_invites_token ON registration_invites(token)`,
+  `CREATE TABLE IF NOT EXISTS registration_invite_uses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    invite_id TEXT NOT NULL,
+    user_id TEXT,
+    used_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_registration_invite_uses_invite ON registration_invite_uses(invite_id)`,
+  // 管理操作审计
+  `CREATE TABLE IF NOT EXISTS admin_audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor_id TEXT,
+    actor_name TEXT NOT NULL DEFAULT '',
+    action TEXT NOT NULL,
+    target TEXT NOT NULL DEFAULT '',
+    summary TEXT NOT NULL DEFAULT '',
+    result TEXT NOT NULL DEFAULT 'success',
+    ip TEXT,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_admin_audit_time ON admin_audit_log(created_at, id)`,
+  // 成员登录记录（每人最多留 3 条）
+  `CREATE TABLE IF NOT EXISTS user_login_info (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    ip TEXT,
+    user_agent TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_user_login_info_recent ON user_login_info(user_id, id DESC)`,
+  // 成员提交的市场发布申请（管理员审批）
+  `CREATE TABLE IF NOT EXISTS share_requests (
+    id TEXT PRIMARY KEY,
+    requester_id TEXT NOT NULL,
+    file_id TEXT NOT NULL,
+    title TEXT NOT NULL DEFAULT '',
+    description TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
+    reviewer_id TEXT,
+    review_reason TEXT NOT NULL DEFAULT '',
+    share_id TEXT,
+    created_at INTEGER NOT NULL,
+    reviewed_at INTEGER
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_share_requests_status ON share_requests(status, created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_share_requests_requester ON share_requests(requester_id, created_at)`,
+
+  // ── 邀请码使用的事务内校验与计数（防并发超额） ──
+  `CREATE TRIGGER IF NOT EXISTS validate_registration_invite_use
+   BEFORE INSERT ON registration_invite_uses
+   BEGIN
+     SELECT CASE WHEN NOT EXISTS (
+       SELECT 1 FROM registration_invites
+       WHERE id = NEW.invite_id AND deleted_at IS NULL AND used_count < max_uses
+         AND (expires_at IS NULL OR expires_at > (unixepoch() * 1000))
+     ) THEN RAISE(ABORT, 'invite_unavailable') END;
+   END`,
+  `CREATE TRIGGER IF NOT EXISTS consume_registration_invite_use
+   AFTER INSERT ON registration_invite_uses
+   BEGIN
+     UPDATE registration_invites SET used_count = used_count + 1 WHERE id = NEW.invite_id;
+   END`,
+
+  // ── 最后超级管理员保护：不可被降级 / 禁用 / 删除 ──
+  `CREATE TRIGGER IF NOT EXISTS protect_last_super_update
+   BEFORE UPDATE ON users
+   WHEN OLD.role = 'super' AND OLD.deleted_at IS NULL AND OLD.is_disabled = 0
+     AND (OLD.disabled_until IS NULL OR OLD.disabled_until <= (unixepoch() * 1000))
+     AND (NEW.role != 'super' OR NEW.deleted_at IS NOT NULL OR NEW.is_disabled = 1
+       OR (NEW.disabled_until IS NOT NULL AND NEW.disabled_until > (unixepoch() * 1000)))
+     AND NOT EXISTS (
+       SELECT 1 FROM users WHERE id != OLD.id AND role = 'super' AND deleted_at IS NULL
+         AND is_disabled = 0 AND (disabled_until IS NULL OR disabled_until <= (unixepoch() * 1000))
+     )
+   BEGIN SELECT RAISE(ABORT, 'last_super'); END`,
+  `CREATE TRIGGER IF NOT EXISTS protect_last_super_delete
+   BEFORE DELETE ON users
+   WHEN OLD.role = 'super' AND OLD.deleted_at IS NULL AND OLD.is_disabled = 0
+     AND (OLD.disabled_until IS NULL OR OLD.disabled_until <= (unixepoch() * 1000))
+     AND NOT EXISTS (
+       SELECT 1 FROM users WHERE id != OLD.id AND role = 'super' AND deleted_at IS NULL
+         AND is_disabled = 0 AND (disabled_until IS NULL OR disabled_until <= (unixepoch() * 1000))
+     )
+   BEGIN SELECT RAISE(ABORT, 'last_super'); END`,
+
+  // ── 登录记录 / 审计日志自动裁剪（避免无限增长） ──
+  `CREATE TRIGGER IF NOT EXISTS limit_user_login_info
+   AFTER INSERT ON user_login_info
+   BEGIN
+     DELETE FROM user_login_info WHERE user_id = NEW.user_id AND id NOT IN (
+       SELECT id FROM user_login_info WHERE user_id = NEW.user_id ORDER BY id DESC LIMIT 3
+     );
+   END`,
+  `CREATE TRIGGER IF NOT EXISTS limit_admin_audit
+   AFTER INSERT ON admin_audit_log
+   BEGIN
+     DELETE FROM admin_audit_log WHERE id IN (
+       SELECT id FROM admin_audit_log
+       WHERE created_at < (unixepoch() - 7776000) * 1000 OR id <= NEW.id - 20000
+       ORDER BY id LIMIT 200
+     );
+   END`,
 ];
 
 /** 所有预期的业务表 —— 自动建表 & 升级时都要检查 */
@@ -168,6 +314,9 @@ export const EXPECTED_TABLES = [
   "turnstile_visits", "banned_ips", "settings", "traffic_stats",
   "oauth_states", "oauth_providers", "activation_plans", "activation_codes",
   "directories",
+  // 成员与管理员
+  "users", "role_permissions", "registration_invites", "registration_invite_uses",
+  "admin_audit_log", "user_login_info", "share_requests",
 ];
 
 let schemaReady = false;
@@ -204,6 +353,13 @@ const MIGRATION_STATEMENTS: string[] = [
   // ═══════════ WebDAV 虚拟目录 ═══════════
   "ALTER TABLE files ADD COLUMN path TEXT NOT NULL DEFAULT '/'",
   "CREATE INDEX IF NOT EXISTS idx_files_path ON files(path)",
+  // ═══════════ 成员空间归属（owner / created_by）═══════════
+  "ALTER TABLE files ADD COLUMN owner_id TEXT",
+  "CREATE INDEX IF NOT EXISTS idx_files_owner ON files(owner_id)",
+  "ALTER TABLE directories ADD COLUMN owner_id TEXT",
+  "CREATE INDEX IF NOT EXISTS idx_directories_owner ON directories(owner_id)",
+  "ALTER TABLE shares ADD COLUMN created_by TEXT",
+  "ALTER TABLE direct_links ADD COLUMN created_by TEXT",
 ];
 
 /**
@@ -240,6 +396,47 @@ async function runMigrations(env: Env): Promise<void> {
     ).bind(String(MIGRATION_STATEMENTS.length)).run();
   } catch {
     /* settings 表不存在时忽略 */
+  }
+}
+
+/**
+ * directories 表结构升级 —— 旧的 PRIMARY KEY(path) 无法区分不同 owner 的同名目录，
+ * 重建为 (path, owner_key) 复合主键：
+ *   - admin / 全局空间：owner_key = ''（避免 NULL 在唯一约束里被当作互不相同）
+ *   - 成员空间：owner_key = 成员 id
+ * 幂等：表已含 owner_key 列时直接返回。
+ */
+async function migrateDirectories(env: Env): Promise<void> {
+  try {
+    const exists: any = await env.db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='directories'")
+      .first();
+    if (!exists) return;
+
+    const info: any = await env.db.prepare("PRAGMA table_info(directories)").all();
+    const cols = new Set<string>((info.results ?? []).map((c: any) => c.name));
+    if (cols.has("owner_key")) return; // 已是新结构
+
+    // 清理可能残留的中间表（上次迁移中断）
+    await env.db.prepare("DROP TABLE IF EXISTS directories_legacy").run();
+    await env.db.prepare("ALTER TABLE directories RENAME TO directories_legacy").run();
+    await env.db.prepare(
+      "CREATE TABLE directories (path TEXT NOT NULL, owner_key TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL, PRIMARY KEY(path, owner_key))"
+    ).run();
+
+    const legacyInfo: any = await env.db.prepare("PRAGMA table_info(directories_legacy)").all();
+    const legacyCols = new Set<string>((legacyInfo.results ?? []).map((c: any) => c.name));
+    const srcOwner = legacyCols.has("owner_id") ? "COALESCE(owner_id, '')" : "''";
+    await env.db
+      .prepare(
+        `INSERT OR IGNORE INTO directories(path, owner_key, created_at) SELECT path, ${srcOwner}, created_at FROM directories_legacy`
+      )
+      .run();
+
+    await env.db.prepare("DROP TABLE directories_legacy").run();
+  } catch (e) {
+    // 迁移失败不应阻塞建表流程（下次冷启动会重试）
+    console.error("[migrateDirectories]", e);
   }
 }
 
@@ -294,6 +491,9 @@ export async function ensureSchema(env: Env): Promise<void> {
   // ⑤ 跑增量迁移（幂等，只跑未执行过的）
   await runMigrations(env);
 
+  // ⑥ directories 表结构升级（幂等）
+  await migrateDirectories(env);
+
   schemaReady = true;
 }
 
@@ -318,12 +518,18 @@ const EXPECTED_COLUMNS: { table: string; column: string }[] = [
   { table: "shares", column: "market_desc" },
   { table: "download_logs", column: "activation_code" },
   { table: "files", column: "path" },
+  { table: "files", column: "owner_id" },
+  // directories 表已迁移为 (path, owner_key) 复合主键，admin 空间 owner_key = ''
+  { table: "directories", column: "owner_key" },
+  { table: "shares", column: "created_by" },
+  { table: "direct_links", column: "created_by" },
 ];
 
 /** 预期的索引（同样是可能缺失的） */
 const EXPECTED_INDEXES: string[] = [
   "idx_shares_market",
   "idx_files_path",
+  "idx_files_owner",
 ];
 
 export interface SchemaStatus {

@@ -1,6 +1,7 @@
 import adminHTML from "../public/admin.html";
 import shareHTML from "../public/share.html";
 import marketHTML from "../public/market.html";
+import myHTML from "../public/my.html";
 import { pickLang, type L10n } from "./i18n";
 
 /**
@@ -103,6 +104,13 @@ export async function serveMarketPage(req?: Request): Promise<Response> {
   const headers = new Headers({ "content-type": "text/html;charset=utf-8", "cache-control": "no-store" });
   addSecurityHeaders(headers);
   return new Response(marketHTML, { headers });
+}
+
+/** 成员前台 /my —— 会话态页面，no-store（与 admin 一致） */
+export function serveMyPage(): Response {
+  const headers = new Headers({ "content-type": "text/html;charset=utf-8", "cache-control": "no-store" });
+  addSecurityHeaders(headers);
+  return new Response(myHTML, { headers });
 }
 
 function esc(s: string): string {

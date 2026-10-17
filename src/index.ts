@@ -1,8 +1,9 @@
 import type { Env } from "./types";
 import { ensureSchema } from "./db";
 import { handleAdminApi } from "./admin";
+import { handleMemberApi } from "./member";
 import { handleDownload, handleDirectDownload, handleShareInfo, handleVerify } from "./public";
-import { serveAdminPage, serveSharePage, serveMarketPage, errorPage } from "./pages";
+import { serveAdminPage, serveSharePage, serveMarketPage, serveMyPage, errorPage } from "./pages";
 import {
   handleOAuthStart,
   handleOAuthCallback,
@@ -100,6 +101,16 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
   // 管理 API
   if (path.startsWith("/api/admin/")) {
     return handleAdminApi(req, env, ctx, path);
+  }
+
+  // ══════════════ 成员前台 /my ══════════════
+  // 成员独立空间页面
+  if (path === "/my" || path === "/my/") {
+    return serveMyPage();
+  }
+  // 成员 API（登录/注册/文件/分享/申请/配额）
+  if (path.startsWith("/api/my/")) {
+    return handleMemberApi(req, env, ctx, path);
   }
 
   // ══════════════ OAuth2 路由 ══════════════
