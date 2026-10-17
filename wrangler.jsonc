@@ -12,7 +12,7 @@
     {
       "binding": "db",
       "database_name": "cloud-r2pan",
-      "database_id": ""
+      "database_id": "9f0bb249-1fe2-481b-93a7-c29dca6ad1d0"
     }
   ],
   // ⚠️ R2 是可选的 —— 如果你改用其他 S3 兼容存储（见下方 analytics_engine_datasets），
@@ -28,12 +28,14 @@
   // 每次下载都会向这个 dataset 写入一个数据点，包含国家、经纬度、文件名等。
   // 绑定是可选的：没绑定时全球分布 Tab 会降级使用 D1 的 download_logs。
   // 首次部署时 Cloudflare 会自动创建这个 dataset。
-  "analytics_engine_datasets": [
-    {
-      "binding": "analytics",
-      "dataset": "r2pan_downloads"
-    }
-  ],
+  // ⚠️ 需要在控制台手动开启一次 Analytics Engine，否则部署报错 code 10089。
+  //    未开启/注释时「全球分布」Tab 会降级使用 D1 的 download_logs。
+  // "analytics_engine_datasets": [
+  //   {
+  //     "binding": "analytics",
+  //     "dataset": "r2pan_downloads"
+  //   }
+  // ],
 
   // ═══════════════ 密钥/敏感配置（不在仓库中声明） ═══════════════
   // 本地开发：创建 .dev.vars 文件（已 .gitignore）写入 admin=你的密钥
