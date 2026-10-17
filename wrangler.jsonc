@@ -4,6 +4,11 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
 
+  // 自定义域名（zone 需与 Worker 同一账号）
+  "routes": [
+    { "pattern": "wangpanxxkfj.kdns.fr", "custom_domain": true }
+  ],
+
   // ═══════════════ 基础设施资源绑定（自动查找/创建） ═══════════════
   // 本地开发时 wrangler dev 自动创建本地实例；
   // 生产部署时自动在 Cloudflare 上查找同名资源并绑定。
