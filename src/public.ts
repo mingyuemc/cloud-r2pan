@@ -232,8 +232,13 @@ export async function handleShareInfo(req: Request, env: Env, token: string): Pr
       .bind(token).run().catch(() => {}); // 不 await，不阻塞响应
   }
 
+  // 直链复制按钮用：仅对「可用且无密码」的分享暴露可直接下载的 URL。
+  // 有密码的分享直链需要 ticket，复制出来也无法直接用，故不提供。
+  const directDownloadUrl = status === "ok" && !row.password_hash ? `/s/${token}/download` : null;
+
   return json({
     status,
+    direct_download_url: directDownloadUrl,
     name: row.name,
     size: row.size,
     mime: row.mime,

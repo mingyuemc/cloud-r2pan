@@ -1682,11 +1682,20 @@ function toast(msg, type='ok'){
 }
 
 function copyText(text){
-  if(navigator.clipboard?.writeText) return navigator.clipboard.writeText(text).then(() => toast(t('copied')));
-  const ta = document.createElement('textarea');
-  ta.value = text; document.body.appendChild(ta); ta.select();
-  document.execCommand('copy'); ta.remove();
-  return Promise.resolve(toast(t('copied')));
+  // 回退：clipboard API 不可用 / 被拒绝（页面失焦、非安全上下文、权限受限）时用 execCommand
+  const fallback = () => {
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+      toast(t('copied'));
+    }catch(e){ toast(text); }
+  };
+  if(navigator.clipboard?.writeText)
+    return navigator.clipboard.writeText(text).then(() => toast(t('copied'))).catch(fallback);
+  fallback();
+  return Promise.resolve();
 }
 
 const confirmDialog = (title, msg, danger=true) => new Promise(resolve => {
