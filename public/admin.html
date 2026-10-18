@@ -1742,10 +1742,12 @@ function loadTurnstileApi(cb){
 }
 function renderTurnstile(sel){
   TS.token = ''; TS.widgetId = null;
-  if(!TS.required || !TS.sitekey) return;
+  const host = document.querySelector(sel);
+  if(!TS.required || !TS.sitekey){ if(host) host.style.display = 'none'; return; }
   loadTurnstileApi(() => {
     const el = document.querySelector(sel);
     if(!el || !window.turnstile) return;
+    el.style.display = 'flex';
     el.innerHTML = '';
     try{
       TS.widgetId = window.turnstile.render(el, {
