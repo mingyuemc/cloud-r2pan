@@ -3,7 +3,7 @@ import { ensureSchema } from "./db";
 import { handleAdminApi } from "./admin";
 import { handleMemberApi } from "./member";
 import { handleDownload, handleDirectDownload, handleShareInfo, handleVerify } from "./public";
-import { serveAdminPage, serveSharePage, serveMarketPage, serveMyPage, errorPage } from "./pages";
+import { serveAdminPage, serveSharePage, serveMarketPage, serveMyPage, serveLandingPage, errorPage } from "./pages";
 import {
   handleOAuthStart,
   handleOAuthCallback,
@@ -84,13 +84,13 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
   const url = new URL(req.url);
   const path = url.pathname;
 
-  // 首页：根据管理员设置决定去向（默认 → /admin；开启后 → /market）
+  // 首页：统一登录落地页（成员 + 管理员）。开启「市场作为首页」时仍跳 /market。
   if (path === "/") {
     await ensureSchema(env);
     const { getSettings } = await import("./settings");
     const s = await getSettings(env);
-    const target = s.homeRedirectMarket ? "/market" : "/admin";
-    return Response.redirect(new URL(target, url).toString(), 302);
+    if (s.homeRedirectMarket) return Response.redirect(new URL("/market", url).toString(), 302);
+    return serveLandingPage();
   }
 
   // 管理后台页面（/admin/apple 是隐藏的 Apple 玻璃风）

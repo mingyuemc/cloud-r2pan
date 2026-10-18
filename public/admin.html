@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -67,9 +67,9 @@
    简洁亮色
    ═══════════════════════════════════════════════════════════ */
 :root[data-theme="light"] {
-  --bg-page: #f5f5f7;
-  --orb-1: transparent; --orb-2: transparent; --orb-3: transparent;
-  --orb-opacity: 0;
+  --bg-page: radial-gradient(circle at 12% 8%, rgba(45,156,151,.20), transparent 32%), radial-gradient(circle at 88% 16%, rgba(90,143,203,.18), transparent 34%), radial-gradient(circle at 76% 88%, rgba(90,143,203,.13), transparent 30%), radial-gradient(circle at 28% 72%, rgba(45,156,151,.11), transparent 26%), linear-gradient(180deg, #eef5f9 0%, #e6eef4 100%);
+  --orb-1: #2d9c97; --orb-2: #5a8fcb; --orb-3: #7fb0d6;
+  --orb-opacity: 0.16;
 
   --glass: #ffffff;
   --glass-strong: #ffffff;
@@ -77,8 +77,8 @@
   --stroke-strong: rgba(0,0,0,.14);
 
   --text: #1d1d1f;
-  --text-2: rgba(0,0,0,.58);
-  --text-3: rgba(0,0,0,.35);
+  --text-2: rgba(0,0,0,.6);
+  --text-3: rgba(0,0,0,.5);
 
   --sf-soft: rgba(0,0,0,.04);
   --sf: rgba(0,0,0,.055);
@@ -1717,15 +1717,15 @@ async function showApp(){
     if (/\/admin\/apple(\/|$)/.test(path)) {
       document.documentElement.dataset.theme = 'apple-dark';
     } else {
-      // 根据后端偏好设置主题（默认 dark）
-      document.documentElement.dataset.theme = s.ui_theme === 'light' ? 'light' : 'dark';
+      // 根据后端偏好设置主题（默认 light）
+      document.documentElement.dataset.theme = s.ui_theme === 'dark' ? 'dark' : 'light';
     }
   }catch(err){
     // 普通成员无权访问后台：回到登录页（成员请使用 /my）
     const m = String(err && err.message || '');
     if (m === 'forbidden' || m === 'unauthorized') { showLogin(); return; }
     // 兜底
-    document.documentElement.dataset.theme = location.pathname.includes('/admin/apple') ? 'apple-dark' : 'dark';
+    document.documentElement.dataset.theme = location.pathname.includes('/admin/apple') ? 'apple-dark' : 'light';
   }
   document.title = t('docTitle', {site: siteTitle});
 
