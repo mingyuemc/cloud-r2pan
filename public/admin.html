@@ -815,6 +815,7 @@ const I18N = {
     login: '登录', logout: '退出', cancel: '取消', confirm: '确定', copy: '复制', close: '关闭',
     copied: '已复制到剪贴板', save: '保存设置', saved: '设置已保存', forever: '永久',
     switchTo: 'EN', topbarSub: '管理后台 · Cloudflare Workers + R2',
+    mySpace: '我的空间', mySpaceTip: '前往我的空间上传/管理文件',
     // 登录
     loginSubtitle: '管理后台 · 输入用户名密码或管理密钥登录', keyPlaceholder: '管理密钥 (admin)', userPlaceholder: '用户名（成员 / 管理员，可留空）',
     // 标签
@@ -1211,6 +1212,7 @@ const I18N = {
     login: 'Log in', logout: 'Log out', cancel: 'Cancel', confirm: 'Confirm', copy: 'Copy', close: 'Close',
     copied: 'Copied to clipboard', save: 'Save Settings', saved: 'Settings saved', forever: 'Forever',
     switchTo: '中文', topbarSub: 'Admin console · Cloudflare Workers + R2',
+    mySpace: 'My Space', mySpaceTip: 'Go to My Space to upload / manage files',
     // 登录
     loginSubtitle: 'Admin console · Sign in with your account or admin key', keyPlaceholder: 'Admin key (admin)', userPlaceholder: 'Username (member / admin, optional)',
     // 标签
@@ -1880,6 +1882,7 @@ let currentTab = 'overview';
 let openGroup = 'overview'; // 当前展开的侧边栏分组
 let logsPage = 1, logsQuery = '';
 let ROLE = 'super', PERMS = [];  // 当前登录者身份与权限（后端 /session 下发）
+let IMPLICIT_SUPER = false;      // 用 admin 密钥登录的隐式超管（uid 为空，没有 /my 独立空间）
 /** 是否可见某个受权限保护的菜单项（super 全可见） */
 function canSee(perm){ return !perm || ROLE === 'super' || PERMS.includes(perm); }
 
@@ -1890,6 +1893,7 @@ async function showApp(){
     siteTitle = s.site_title || siteTitle;
     ROLE = s.role || 'super';
     PERMS = s.permissions || [];
+    IMPLICIT_SUPER = !!s.implicit_super;
     // 隐藏路由：访问 /admin/apple 强制 Apple 玻璃风格（暗色紫蓝渐变）
     const path = location.pathname;
     if (/\/admin\/apple(\/|$)/.test(path)) {
@@ -1939,6 +1943,7 @@ async function showApp(){
         <span class="bar"><i id="pill-bar" style="width:0%"></i></span>
         <span id="pill-text">— / —</span>
       </div>
+      ${IMPLICIT_SUPER ? '' : `<a class="btn sm" id="my-space-btn" href="/my" title="${esc(t('mySpaceTip'))}">${esc(t('mySpace'))}</a>`}
       <button class="btn sm" id="theme-toggle" title="🌙 / ☀️" style="font-size:16px;padding:9px 11px;line-height:1">${document.documentElement.dataset.theme === 'light' ? '🌙' : '☀️'}</button>
       <button class="btn sm" id="lang-btn">${esc(t('switchTo'))}</button>
       <button class="btn sm" id="logout-btn">${esc(t('logout'))}</button>

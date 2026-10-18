@@ -221,6 +221,7 @@ input::placeholder{color:rgba(31,37,33,.52)}
       <div><h1 id="site-title">cloud-r2pan</h1><div class="sub" id="whoami"></div></div>
       <div class="spacer"></div>
       <span class="chip" id="role-chip"></span>
+      <button class="btn ghost sm" id="admin-entry" style="display:none"></button>
       <button class="lang-btn" id="lang-toggle"></button>
       <button class="btn ghost sm" id="logout"></button>
     </div>
@@ -251,6 +252,7 @@ const I18N = {
     toReg:'还没有账号？', toRegA:'注册',
     toLogin:'已有账号？', toLoginA:'登录',
     switchTo:'EN',
+    adminConsole:'管理后台',
     logout:'退出登录', roleMember:'成员', roleAdmin:'管理员', roleSuper:'超级管理员',
     tabFiles:'📁 我的文件', tabShares:'🔗 我的分享', tabRequests:'📝 发布申请',
     drop:'点击或拖拽文件到此处上传',
@@ -284,6 +286,7 @@ const I18N = {
     toReg:"No account yet?", toRegA:'Register',
     toLogin:'Already have an account?', toLoginA:'Sign in',
     switchTo:'中文',
+    adminConsole:'Admin console',
     logout:'Sign out', roleMember:'Member', roleAdmin:'Admin', roleSuper:'Super Admin',
     tabFiles:'📁 My Files', tabShares:'🔗 My Shares', tabRequests:'📝 Requests',
     drop:'Click or drag files here to upload',
@@ -412,6 +415,10 @@ function renderShell(){
   $('#site-title').textContent='cloud-r2pan';
   $('#whoami').textContent=SESSION.display_name||SESSION.username;
   $('#role-chip').textContent=t(roleKey);
+  // 管理员（admin/super）可一键切到管理后台；成员不显示该入口
+  const isAdmin=SESSION.role==='admin'||SESSION.role==='super';
+  const ae=$('#admin-entry');
+  if(ae){ ae.style.display=isAdmin?'':'none'; ae.textContent=t('adminConsole'); ae.onclick=()=>{ location.href='/admin'; }; }
   $('#logout').textContent=t('logout');
   $('#lang-toggle').textContent=t('switchTo');
   $('#tab-files').textContent=t('tabFiles');
