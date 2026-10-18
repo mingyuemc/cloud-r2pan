@@ -57,6 +57,11 @@ export interface Settings {
   turnstileSitekeyOverride: string | null;
   /** Turnstile secret（Cloudflare 侧的 SK 开头密钥）—— 用 admin AES-GCM 加密后存 */
   turnstileSecretCipher: string | null;
+  /**
+   * 登录 / 注册接口是否也要求人机验证（/api/my/login、/api/my/register、/api/admin/login）。
+   * 需已配置 SiteKey + Secret 才实际生效。默认开启。
+   */
+  turnstileOnLogin: boolean;
 
   // ═══════ OAuth2 下载鉴权 ═══════
   /** 是否启用 OAuth2 下载验证 */
@@ -159,6 +164,7 @@ export const DEFAULT_SETTINGS: Settings = {
   turnstileThreshold: 5,
   turnstileSitekeyOverride: null,
   turnstileSecretCipher: null,
+  turnstileOnLogin: true,
   // OAuth2
   oauthEnabled: false,
   oauthProvider: "github",
@@ -260,6 +266,7 @@ export async function getSettings(env: Env): Promise<Settings> {
     turnstileThreshold: toInt(map.get("turnstile_threshold"), DEFAULT_SETTINGS.turnstileThreshold),
     turnstileSitekeyOverride: map.get("turnstile_sitekey_override") ?? null,
     turnstileSecretCipher: map.get("turnstile_secret_cipher") ?? null,
+    turnstileOnLogin: (map.get("turnstile_login") ?? "1") === "1",
     // OAuth2
     oauthEnabled: map.get("oauth_enabled") === "1",
     oauthProvider: map.get("oauth_provider") ?? DEFAULT_SETTINGS.oauthProvider,

@@ -985,6 +985,9 @@ const I18N = {
     tsSitekeyOverrideHelp: '如果你没在 Cloudflare Secret 里配 turnstile_sitekey，可在此填入',
     tsSecretOverride: 'Turnstile Secret',
     tsSecretPlaceholder: '填入 Secret Key（与 SiteKey 同一面板获取）',
+    tsLoginToggle: '登录 / 注册也需要人机验证',
+    tsLoginToggleHelp: '开启后，/admin 与 /my 的登录、成员注册都必须先通过人机验证（需已配置 SiteKey + Secret）',
+    tsRequired: '请先完成人机验证',
     tsSecretKeep: '留空不改动',
     tsSecretInCloudflare: '已在 Cloudflare Secret 中（优先使用）',
     tsSecretInDatabase: '已在数据库中加密存储',
@@ -1382,6 +1385,9 @@ const I18N = {
     tsSitekeyOverrideHelp: 'Only needed if you did NOT set turnstile_sitekey as a Cloudflare Secret',
     tsSecretOverride: 'Turnstile Secret',
     tsSecretPlaceholder: 'Enter Secret Key (same dashboard as SiteKey)',
+    tsLoginToggle: 'Also require on sign-in / register',
+    tsLoginToggleHelp: 'When on, admin & member sign-in and member registration require human verification (needs SiteKey + Secret).',
+    tsRequired: 'Please complete the human verification first',
     tsSecretKeep: 'Leave blank to keep unchanged',
     tsSecretInCloudflare: 'Set in Cloudflare Secret (takes priority)',
     tsSecretInDatabase: 'Stored encrypted in the database',
@@ -1716,6 +1722,57 @@ let siteTitle = 'cloud-r2pan';
 let loginStage = 'password'; // 'password' | '2fa' | 'recovery'
 let savedCred = { key: '' }; // 第一阶段凭证：{key} 或 {username,password}
 
+/* ── 登录用 Turnstile 人机验证 ──
+ * 后端 /api/turnstile 下发是否启用 + sitekey；启用时每个登录阶段都要带一个有效 token
+ * （Turnstile token 一次性，2FA 第二阶段必须重新取）。 */
+let TS = { required: false, sitekey: null, widgetId: null, token: '' };
+let tsApiLoading = null;
+function loadTurnstileApi(cb){
+  if(window.turnstile) return cb();
+  if(!tsApiLoading){
+    tsApiLoading = new Promise(res => {
+      const s = document.createElement('script');
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      s.async = true; s.defer = true;
+      s.onload = () => res(); s.onerror = () => res();
+      document.head.appendChild(s);
+    });
+  }
+  tsApiLoading.then(cb);
+}
+function renderTurnstile(sel){
+  TS.token = ''; TS.widgetId = null;
+  if(!TS.required || !TS.sitekey) return;
+  loadTurnstileApi(() => {
+    const el = document.querySelector(sel);
+    if(!el || !window.turnstile) return;
+    el.innerHTML = '';
+    try{
+      TS.widgetId = window.turnstile.render(el, {
+        sitekey: TS.sitekey,
+        callback: tok => { TS.token = tok; },
+        'expired-callback': () => { TS.token = ''; },
+        'error-callback': () => { TS.token = ''; },
+      });
+    }catch(e){}
+  });
+}
+function resetTurnstile(){
+  TS.token = '';
+  try{ if(TS.widgetId != null && window.turnstile) window.turnstile.reset(TS.widgetId); }catch(e){}
+}
+/** 拉取一次 /api/turnstile（公开端点）→ 是否启用 + sitekey，缓存复用 */
+let tsConfigPromise = null;
+function ensureTsConfig(){
+  if(!tsConfigPromise){
+    tsConfigPromise = fetch('/api/turnstile').then(r => r.json()).then(d => {
+      TS.required = !!d.login;
+      TS.sitekey = d.sitekey || null;
+    }).catch(() => { TS.required = false; TS.sitekey = null; });
+  }
+  return tsConfigPromise;
+}
+
 function showLogin(){
   document.title = t('docTitle', {site: siteTitle});
 
@@ -1726,6 +1783,7 @@ function showLogin(){
       <form id="login-form">
         <input type="text" id="login-user" placeholder="${esc(t('userPlaceholder'))}" autocomplete="username">
         <input type="password" id="login-pass" placeholder="${esc(t('keyPlaceholder'))}" autocomplete="current-password" autofocus>
+        <div id="login-ts" style="margin:12px 0 14px;min-height:65px;display:flex;justify-content:center"></div>
         <button class="btn primary" type="submit">${esc(t('login'))}</button>
         <div class="err" id="login-err"></div>
       </form>
@@ -1736,10 +1794,11 @@ function showLogin(){
       const user = $('#login-user').value.trim();
       const pass = $('#login-pass').value;
       if(!pass) return;
+      if(TS.required && !TS.token){ $('#login-err').textContent = t('tsRequired'); resetTurnstile(); return; }
       savedCred = user ? { username: user, password: pass } : { key: pass };
       $('#login-err').textContent = '';
       try{
-        const r = await api('/api/admin/login', { method:'POST', body: JSON.stringify(savedCred) });
+        const r = await api('/api/admin/login', { method:'POST', body: JSON.stringify({ ...savedCred, turnstile: TS.token }) });
         if(r.need_2fa){
           loginStage = '2fa';
           showLogin();
@@ -1748,16 +1807,19 @@ function showLogin(){
         }
       }catch(err){
         $('#login-err').textContent = err.message;
+        resetTurnstile();
         shake();
       }
     };
     $('#login-lang').onclick = toggleLang;
+    ensureTsConfig().then(() => renderTurnstile('#login-ts'));
   } else if(loginStage === '2fa'){
     renderLoginCard(`
       <h1>${esc(t('login2faTitle'))}</h1>
       <div class="sub">${esc(t('login2faSub'))}</div>
       <form id="login-form">
         <input type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" id="login-code" placeholder="${esc(t('login2faPh'))}" autocomplete="one-time-code" autofocus style="text-align:center;letter-spacing:.4em;font-size:20px">
+        <div id="login-ts" style="margin:12px 0 14px;min-height:65px;display:flex;justify-content:center"></div>
         <button class="btn primary" type="submit">${esc(t('login2faCode'))}</button>
         <div class="err" id="login-err"></div>
       </form>
@@ -1770,23 +1832,27 @@ function showLogin(){
       e.preventDefault();
       const code = $('#login-code').value.trim();
       if(!/^\d{6}$/.test(code)) return;
+      if(TS.required && !TS.token){ $('#login-err').textContent = t('tsRequired'); resetTurnstile(); return; }
       $('#login-err').textContent = '';
       try{
-        const r = await api('/api/admin/login', { method:'POST', body: JSON.stringify({ ...savedCred, code }) });
+        const r = await api('/api/admin/login', { method:'POST', body: JSON.stringify({ ...savedCred, code, turnstile: TS.token }) });
         showApp();
       }catch(err){
         $('#login-err').textContent = err.message;
+        resetTurnstile();
         shake();
       }
     };
     $('#login-back').onclick = () => { loginStage = 'password'; showLogin(); };
     $('#login-recovery').onclick = () => { loginStage = 'recovery'; showLogin(); };
+    ensureTsConfig().then(() => renderTurnstile('#login-ts'));
   } else {
     renderLoginCard(`
       <h1>${esc(t('login2faTitle'))}</h1>
       <div class="sub">${esc(t('login2faRecoveryHint'))}</div>
       <form id="login-form">
         <input type="text" id="login-recovery-code" placeholder="${esc(t('login2faRecoveryPh'))}" autocomplete="off" autofocus style="letter-spacing:.15em">
+        <div id="login-ts" style="margin:12px 0 14px;min-height:65px;display:flex;justify-content:center"></div>
         <button class="btn primary" type="submit">${esc(t('confirm'))}</button>
         <div class="err" id="login-err"></div>
       </form>
@@ -1798,9 +1864,10 @@ function showLogin(){
       e.preventDefault();
       const code = $('#login-recovery-code').value.trim();
       if(!code) return;
+      if(TS.required && !TS.token){ $('#login-err').textContent = t('tsRequired'); resetTurnstile(); return; }
       $('#login-err').textContent = '';
       try{
-        const r = await api('/api/admin/login', { method:'POST', body: JSON.stringify({ ...savedCred, code }) });
+        const r = await api('/api/admin/login', { method:'POST', body: JSON.stringify({ ...savedCred, code, turnstile: TS.token }) });
         if(r.recovery_used && r.totp_reset){
           // 弹出恢复成功提示
           openModal(`
@@ -1814,10 +1881,12 @@ function showLogin(){
         showApp();
       }catch(err){
         $('#login-err').textContent = err.message;
+        resetTurnstile();
         shake();
       }
     };
     $('#login-back').onclick = () => { loginStage = '2fa'; showLogin(); };
+    ensureTsConfig().then(() => renderTurnstile('#login-ts'));
   }
   // 焦点处理
   setTimeout(() => {
@@ -4118,6 +4187,13 @@ async function loadSettings(){
         </select>
       </div>
       <div class="field">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="ts-login" ${s.turnstile_login !== false ? 'checked' : ''} style="width:auto;margin:0">
+          <span>${esc(t('tsLoginToggle'))}</span>
+        </label>
+        <div class="tip">${esc(t('tsLoginToggleHelp'))}</div>
+      </div>
+      <div class="field">
         <label>${esc(t('tsThreshold'))}</label>
         <input type="number" id="ts-th" min="0" max="10000" value="${s.turnstile_threshold ?? 5}" style="width:100%;padding:10px 12px;border-radius:12px;font-size:13px;color:var(--text);background:var(--sf-input);border:1px solid var(--stroke-strong);outline:none">
         <div class="tip">${esc(t('tsThresholdHelp'))}</div>
@@ -4161,6 +4237,7 @@ async function loadSettings(){
       }
       const body = {
         turnstile_mode: $('#ts-m').value,
+        turnstile_login: $('#ts-login').checked,
         turnstile_threshold: Number($('#ts-th').value) || 0,
         turnstile_sitekey_override: $('#ts-sko').value.trim(),
         turnstile_secret: secretPayload,
@@ -4423,6 +4500,7 @@ function showRecoveryCodes(codes){
 
 /* ═══════════ 启动 ═══════════ */
 (async () => {
+  ensureTsConfig();
   try{
     const s = await api('/api/admin/session');
     siteTitle = s.site_title || siteTitle;

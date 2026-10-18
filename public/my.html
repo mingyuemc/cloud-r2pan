@@ -62,6 +62,8 @@ select option{background:#ffffff;color:#1a2332}
 .auth-msg{margin-top:14px;font-size:13px;min-height:18px}
 .auth-msg.err{color:#c01a2b}
 .auth-msg.ok{color:#1f7a75}
+.ts-box{display:flex;justify-content:center;margin:4px 0 14px}
+.ts-box:empty{display:none}
 
 /* ── 主体 ── */
 .topbar{display:flex;align-items:center;gap:14px;margin-bottom:22px;flex-wrap:wrap;animation:rise .5s cubic-bezier(.22,1.2,.36,1) both}
@@ -208,6 +210,7 @@ input::placeholder{color:rgba(31,37,33,.52)}
       <div class="field"><label id="lbl-user"></label><input id="in-user" autocomplete="username"></div>
       <div class="field"><label id="lbl-pass"></label><input id="in-pass" type="password" autocomplete="current-password"></div>
       <div class="field hidden" id="f-invite"><label id="lbl-invite"></label><input id="in-invite"></div>
+      <div class="ts-box" id="auth-ts"></div>
       <button class="btn full" id="auth-btn"></button>
       <div class="auth-switch"><span id="switch-hint"></span> <a id="switch-a"></a></div>
       <div class="auth-msg" id="auth-msg"></div>
@@ -274,6 +277,7 @@ const I18N = {
     reason:'理由', dls:'下载', sz:'大小', at:'创建于',
     pwBad:'用户名或密码错误', netBad:'网络错误，请稍后再试',
     needInvite:'请填写邀请码',
+    tsRequired:'请先完成人机验证',
     loading:'加载中…',
     footer:'Powered by cloud-r2pan',
   },
@@ -308,6 +312,7 @@ const I18N = {
     reason:'Reason', dls:'downloads', sz:'size', at:'created',
     pwBad:'Invalid username or password', netBad:'Network error, please try later',
     needInvite:'Please enter the invite code',
+    tsRequired:'Please complete the human verification first',
     loading:'Loading…',
     footer:'Powered by cloud-r2pan',
   }
@@ -342,6 +347,54 @@ function toast(text,kind){
   el.textContent=text;
   document.body.appendChild(el);
   setTimeout(()=>el.remove(),2600);
+}
+
+/* ═══════════ Turnstile 人机验证 ═══════════
+ * 后端 /api/turnstile 下发登录/注册是否需要验证 + sitekey；
+ * token 一次性，每次提交后都要 reset 重新取。 */
+let TS={required:false,sitekey:null,widgetId:null,token:''};
+let tsApiLoading=null;
+function loadTurnstileApi(cb){
+  if(window.turnstile) return cb();
+  if(!tsApiLoading){
+    tsApiLoading=new Promise(res=>{
+      const s=document.createElement('script');
+      s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      s.async=true; s.defer=true;
+      s.onload=()=>res(); s.onerror=()=>res();
+      document.head.appendChild(s);
+    });
+  }
+  tsApiLoading.then(cb);
+}
+function renderTurnstile(){
+  TS.token=''; TS.widgetId=null;
+  const el=$('#auth-ts');
+  if(!el) return;
+  el.innerHTML='';
+  if(!TS.required||!TS.sitekey) return;
+  loadTurnstileApi(()=>{
+    if(!el||!window.turnstile) return;
+    try{
+      TS.widgetId=window.turnstile.render(el,{
+        sitekey:TS.sitekey,
+        callback:tok=>{TS.token=tok;},
+        'expired-callback':()=>{TS.token='';},
+        'error-callback':()=>{TS.token='';},
+      });
+    }catch(e){}
+  });
+}
+function resetTurnstile(){
+  TS.token='';
+  try{ if(TS.widgetId!=null&&window.turnstile) window.turnstile.reset(TS.widgetId); }catch(e){}
+}
+async function initAuthTurnstile(){
+  try{
+    const d=await api('/api/turnstile');
+    TS.required=!!d.login; TS.sitekey=d.sitekey||null;
+  }catch{ TS.required=false; TS.sitekey=null; }
+  renderTurnstile();
 }
 
 /* ═══════════ 登录 / 注册 ═══════════ */
@@ -383,16 +436,18 @@ async function doAuth(){
   const m=$('#auth-msg');
   if(!username||!password){ m.className='auth-msg err'; m.textContent=t('pwBad'); return; }
   if(MODE==='register'&&!invite){ m.className='auth-msg err'; m.textContent=t('needInvite'); return; }
+  if(TS.required&&!TS.token){ m.className='auth-msg err'; m.textContent=t('tsRequired'); return; }
   $('#auth-btn').disabled=true;
   try{
-    if(MODE==='login') await api('/api/my/login',{method:'POST',body:JSON.stringify({username,password})});
-    else await api('/api/my/register',{method:'POST',body:JSON.stringify({username,password,invite})});
+    if(MODE==='login') await api('/api/my/login',{method:'POST',body:JSON.stringify({username,password,turnstile:TS.token})});
+    else await api('/api/my/register',{method:'POST',body:JSON.stringify({username,password,invite,turnstile:TS.token})});
     // 登录成功
     try{ if(inviteFromUrl) history.replaceState(null,'',location.pathname); }catch{}
     await boot();
   }catch(e){
     m.className='auth-msg err';
     m.textContent=e.message||t('netBad');
+    resetTurnstile();
   }finally{ $('#auth-btn').disabled=false; }
 }
 
@@ -666,6 +721,7 @@ async function loadRequests(){
 
 /* ═══════════ 启动 ═══════════ */
 renderAuth();
+initAuthTurnstile();
 boot();
 </script>
 </body>

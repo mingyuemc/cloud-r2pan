@@ -74,6 +74,35 @@ export function getTurnstileInfo(
 }
 
 /**
+ * 登录 / 注册是否需要人机验证。
+ * 三个条件缺一不可：开关打开 + SiteKey 已配（前端要渲染 widget）+ Secret 已配（后端要校验）。
+ */
+export async function isTurnstileRequiredForAuth(
+  env: Env,
+  settings: {
+    turnstileOnLogin: boolean;
+    turnstileSitekeyOverride: string | null;
+    turnstileSecretCipher: string | null;
+    turnstileMode: string;
+  }
+): Promise<boolean> {
+  if (!settings.turnstileOnLogin) return false;
+  if (!getTurnstileInfo(env, settings).sitekey) return false;
+  return !!(await getTurnstileSecret(env, settings));
+}
+
+/**
+ * GET /api/turnstile —— 公开端点：登录 / 注册页读取渲染所需信息。
+ * sitekey 是公开值，可安全下发；secret 绝不外泄。
+ */
+export async function handleTurnstileConfig(req: Request, env: Env): Promise<Response> {
+  const settings = await getSettings(env);
+  const { sitekey, mode } = getTurnstileInfo(env, settings);
+  const login = await isTurnstileRequiredForAuth(env, settings);
+  return json({ sitekey, mode, login });
+}
+
+/**
  * 验证 Turnstile token —— 向 Cloudflare siteverify 发 POST。
  * 官方要求 POST application/x-www-form-urlencoded: secret + token
  */

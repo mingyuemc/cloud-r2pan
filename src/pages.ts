@@ -164,6 +164,8 @@ input:focus{border-color:rgba(45,156,151,.42);box-shadow:0 0 0 3px rgba(45,156,1
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
 .msg{margin-top:14px;font-size:13px;min-height:18px;text-align:center}
 .msg.err{color:#b42318}.msg.ok{color:#17857c}
+.ts-box{display:flex;justify-content:center;margin:4px 0 14px}
+.ts-box:empty{display:none}
 .links{margin-top:18px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;font-size:13px}
 .links a{color:#17857c;text-decoration:none;cursor:pointer}
 .links a.muted{color:rgba(31,37,33,.5)}
@@ -197,6 +199,7 @@ footer{position:fixed;bottom:20px;left:0;right:0;text-align:center;font-size:12p
       <div class="field hidden" id="f-code"><label id="l-code"></label><input id="a-code" inputmode="numeric"></div>
       <button class="btn" id="a-btn"></button>
     </div>
+    <div class="ts-box" id="ts"></div>
     <div class="msg" id="msg"></div>
   </div>
 </div>
@@ -207,11 +210,11 @@ footer{position:fixed;bottom:20px;left:0;right:0;text-align:center;font-size:12p
     zh:{sub:'成员与管理员统一登录入口',member:'成员登录',admin:'管理员登录',
       user:'用户名',pass:'密码',login:'登录',adminUser:'管理员账号或密钥',adminPass:'密码（用密钥登录时留空）',
       code:'2FA 验证码',register:'注册新账号',market:'文件市场',
-      need2fa:'请输入 2FA 验证码',bad:'用户名或密码错误',net:'网络错误，请稍后再试',lang:'EN'},
+      need2fa:'请输入 2FA 验证码',bad:'用户名或密码错误',net:'网络错误，请稍后再试',tsreq:'请先完成人机验证',lang:'EN'},
     en:{sub:'Unified sign-in for members and admins',member:'Member',admin:'Admin',
       user:'Username',pass:'Password',login:'Sign in',adminUser:'Admin account or key',adminPass:'Password (leave empty when using the key)',
       code:'2FA code',register:'Register',market:'Marketplace',
-      need2fa:'Enter your 2FA code',bad:'Invalid username or password',net:'Network error, please try later',lang:'中文'}
+      need2fa:'Enter your 2FA code',bad:'Invalid username or password',net:'Network error, please try later',tsreq:'Please complete the human verification first',lang:'中文'}
   };
   var lang='';
   try{ var s=localStorage.getItem('cd_lang'); if(s==='zh'||s==='en') lang=s; }catch(e){}
@@ -244,6 +247,48 @@ footer{position:fixed;bottom:20px;left:0;right:0;text-align:center;font-size:12p
       return r.json().then(function(d){ return {ok:r.ok,d:d}; }).catch(function(){ return {ok:r.ok,d:{}}; });
     });
   }
+  /* ── Turnstile 人机验证 ── */
+  var TS={required:false,sitekey:null,widgetId:null,token:''};
+  var tsApiLoading=null;
+  function loadTurnstileApi(cb){
+    if(window.turnstile) return cb();
+    if(!tsApiLoading){
+      tsApiLoading=new Promise(function(res){
+        var s=document.createElement('script');
+        s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        s.async=true; s.defer=true;
+        s.onload=function(){res();}; s.onerror=function(){res();};
+        document.head.appendChild(s);
+      });
+    }
+    tsApiLoading.then(cb);
+  }
+  function renderTurnstile(){
+    TS.token=''; TS.widgetId=null;
+    var el=$('ts'); if(!el) return;
+    el.innerHTML='';
+    if(!TS.required||!TS.sitekey) return;
+    loadTurnstileApi(function(){
+      if(!el||!window.turnstile) return;
+      try{
+        TS.widgetId=window.turnstile.render(el,{
+          sitekey:TS.sitekey,
+          callback:function(tok){TS.token=tok;},
+          'expired-callback':function(){TS.token='';},
+          'error-callback':function(){TS.token='';}
+        });
+      }catch(e){}
+    });
+  }
+  function resetTurnstile(){
+    TS.token='';
+    try{ if(TS.widgetId!=null&&window.turnstile) window.turnstile.reset(TS.widgetId); }catch(e){}
+  }
+  function initTurnstile(){
+    fetch('/api/turnstile').then(function(r){return r.json();}).then(function(d){
+      TS.required=!!d.login; TS.sitekey=d.sitekey||null;
+    }).catch(function(){}).then(function(){ renderTurnstile(); });
+  }
   $('lang').onclick=function(){ lang = lang==='zh'?'en':'zh'; try{localStorage.setItem('cd_lang',lang);}catch(e){} render(); };
   $('tab-member').onclick=function(){ setMode('member'); };
   $('tab-admin').onclick=function(){ setMode('admin'); };
@@ -251,27 +296,31 @@ footer{position:fixed;bottom:20px;left:0;right:0;text-align:center;font-size:12p
   $('m-btn').onclick=function(){
     var u=$('m-user').value.trim(), p=$('m-pass').value, btn=this;
     if(!u||!p){ show(t('bad'),'err'); return; }
+    if(TS.required&&!TS.token){ show(t('tsreq'),'err'); return; }
     btn.disabled=true;
-    post('/api/my/login',{username:u,password:p}).then(function(res){
+    post('/api/my/login',{username:u,password:p,turnstile:TS.token}).then(function(res){
       btn.disabled=false;
       if(res.ok&&res.d.ok){ location.href='/my'; return; }
-      show((res.d&&res.d.error)||t('bad'),'err');
-    }).catch(function(){ btn.disabled=false; show(t('net'),'err'); });
+      show((res.d&&res.d.error)||t('bad'),'err'); resetTurnstile();
+    }).catch(function(){ btn.disabled=false; show(t('net'),'err'); resetTurnstile(); });
   };
   $('a-btn').onclick=function(){
     var user=$('a-user').value.trim(), pass=$('a-pass').value, code=$('a-code').value.trim(), btn=this;
     if(!user){ show(t('bad'),'err'); return; }
+    if(TS.required&&!TS.token){ show(t('tsreq'),'err'); return; }
     var body = pass ? {username:user,password:pass} : {key:user};
     if(code) body.code=code;
+    body.turnstile = TS.token;
     btn.disabled=true;
     post('/api/admin/login',body).then(function(res){
       btn.disabled=false;
-      if(res.d&&res.d.need_2fa){ $('f-code').className='field'; show(t('need2fa'),''); return; }
+      if(res.d&&res.d.need_2fa){ $('f-code').className='field'; show(t('need2fa'),''); resetTurnstile(); return; }
       if(res.ok&&res.d.ok){ location.href='/admin'; return; }
-      show((res.d&&res.d.error)||t('bad'),'err');
-    }).catch(function(){ btn.disabled=false; show(t('net'),'err'); });
+      show((res.d&&res.d.error)||t('bad'),'err'); resetTurnstile();
+    }).catch(function(){ btn.disabled=false; show(t('net'),'err'); resetTurnstile(); });
   };
   render();
+  initTurnstile();
 })();
 </script>
 </body>

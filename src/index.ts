@@ -2,7 +2,7 @@ import type { Env } from "./types";
 import { ensureSchema } from "./db";
 import { handleAdminApi } from "./admin";
 import { handleMemberApi } from "./member";
-import { handleDownload, handleDirectDownload, handleShareInfo, handleVerify } from "./public";
+import { handleDownload, handleDirectDownload, handleShareInfo, handleVerify, handleTurnstileConfig } from "./public";
 import { serveAdminPage, serveSharePage, serveMarketPage, serveMyPage, serveLandingPage, errorPage } from "./pages";
 import {
   handleOAuthStart,
@@ -238,6 +238,14 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
         url: `/s/${r.share_id}`,
       })),
     });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // 公开：Turnstile 渲染配置（登录 / 注册页面读取 sitekey 与开关）
+  // ══════════════════════════════════════════════════════════════
+  if (path === "/api/turnstile" && req.method === "GET") {
+    await ensureSchema(env);
+    return handleTurnstileConfig(req, env);
   }
 
   // 公开分享页 /s/:token[...]

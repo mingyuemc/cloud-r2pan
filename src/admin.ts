@@ -4,7 +4,7 @@ import { generateCodes, makeBatchId, formatCodeStatus, findCodeByString } from "
 import { getSettings, updateSettings, getStorageUsedBytes, STORAGE_LIMIT_BYTES } from "./settings";
 import { checkAdminKey, createSession, readSession, clientIp, rateLimitLogin, requireAdminIp, type SessionPayload } from "./auth";
 import { pickLang } from "./i18n";
-import { hashPassword } from "./public";
+import { hashPassword, isTurnstileRequiredForAuth, verifyTurnstileToken } from "./public";
 import { parseUA } from "./ua";
 import { encryptSecret, decryptSecret, totpGenerateSecret, totpVerify, totpUri, totpGenerateRecoveryCodes, sha256Hex, safeEqual } from "./crypto";
 import { createStorageProvider, type StorageProvider } from "./storage";
@@ -198,7 +198,22 @@ export async function handleAdminApi(
     if (!env.admin)
       return json({ error: msg(req, "未设置 admin 密钥，请先执行 npx wrangler secret put admin", "admin is not set. Run: npx wrangler secret put admin") }, 500);
 
-    const body = await readJson<{ key?: string; username?: string; password?: string; code?: string }>(req);
+    const body = await readJson<{ key?: string; username?: string; password?: string; code?: string; turnstile?: string }>(req);
+
+    // 人机验证（Turnstile）—— 开启且已配置时，任何管理端登录都必须先通过
+    {
+      const ts = await getSettings(env);
+      if (await isTurnstileRequiredForAuth(env, ts)) {
+        const pass = await verifyTurnstileToken(env, ts, String(body.turnstile ?? ""), ip);
+        if (!pass) {
+          ctx.waitUntil(writeLoginLog(env, req, "login", "fail", "turnstile_failed"));
+          return json(
+            { error: msg(req, "人机验证失败，请重试", "Human verification failed, please retry"), turnstile_required: true },
+            403
+          );
+        }
+      }
+    }
 
     // ① 解析身份：用户名 + 密码（成员/管理员/超管） 或 管理密钥（隐式超管）
     let identity: { uid: string; role: string; ver: number } | null = null;
@@ -1118,6 +1133,7 @@ export async function handleAdminApi(
       cloudflare_turnstile_sitekey: !!env.turnstile_sitekey,
       cloudflare_turnstile_secret: !!env.turnstile_secret,
       turnstile_secret_configured: !!s.turnstileSecretCipher,
+      turnstile_login: s.turnstileOnLogin,
       // OAuth2 总开关 + providers 概要
       oauth_enabled: s.oauthEnabled,
       oauth_providers: providers.results.map((p) => ({
@@ -1189,6 +1205,7 @@ export async function handleAdminApi(
     }
     const th = num(body.turnstile_threshold);
     if (th !== null) patch.turnstile_threshold = String(Math.floor(th));
+    if (typeof body.turnstile_login === "boolean") patch.turnstile_login = body.turnstile_login ? "1" : "0";
     if (typeof body.turnstile_sitekey_override === "string") {
       // 允许清空
       patch.turnstile_sitekey_override = body.turnstile_sitekey_override.trim();

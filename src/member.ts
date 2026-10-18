@@ -27,7 +27,7 @@ import {
   type UserRecord,
 } from "./authz";
 import { pickLang } from "./i18n";
-import { hashPassword } from "./public";
+import { hashPassword, isTurnstileRequiredForAuth, verifyTurnstileToken } from "./public";
 import { encryptSecret } from "./crypto";
 import { createStorageProvider, type StorageProvider } from "./storage";
 import { parseUA } from "./ua";
@@ -143,7 +143,16 @@ export async function handleMemberApi(
       const s = await getSettings(env);
       if (!s.memberRegistrationEnabled)
         return json({ error: msg(req, "当前未开放注册", "Registration is currently closed") }, 403);
-      const body = await readJson<{ username?: string; password?: string; invite?: string }>(req);
+      const body = await readJson<{ username?: string; password?: string; invite?: string; turnstile?: string }>(req);
+      // 人机验证（Turnstile）—— 开启且已配置时，注册必须先通过验证
+      if (await isTurnstileRequiredForAuth(env, s)) {
+        const pass = await verifyTurnstileToken(env, s, String(body.turnstile ?? ""), ip);
+        if (!pass)
+          return json(
+            { error: msg(req, "人机验证失败，请重试", "Human verification failed, please retry"), turnstile_required: true },
+            403
+          );
+      }
       const username = (body.username ?? "").trim().toLowerCase();
       const inviteToken = (body.invite ?? "").trim();
       if (!USERNAME_RE.test(username))
@@ -222,7 +231,19 @@ export async function handleMemberApi(
         ctx.waitUntil(writeLoginLog(env, req, "login", "fail", "rate_limited"));
         return json({ error: msg(req, "尝试过于频繁，请稍后再试", "Too many attempts. Try again later.") }, 429);
       }
-      const body = await readJson<{ username?: string; password?: string }>(req);
+      const body = await readJson<{ username?: string; password?: string; turnstile?: string }>(req);
+      // 人机验证（Turnstile）—— 开启且已配置时，先过验证再验密码，挡在爆破之前
+      const ts = await getSettings(env);
+      if (await isTurnstileRequiredForAuth(env, ts)) {
+        const pass = await verifyTurnstileToken(env, ts, String(body.turnstile ?? ""), ip);
+        if (!pass) {
+          ctx.waitUntil(writeLoginLog(env, req, "login", "fail", "turnstile_failed"));
+          return json(
+            { error: msg(req, "人机验证失败，请重试", "Human verification failed, please retry"), turnstile_required: true },
+            403
+          );
+        }
+      }
       const u = body.username ? await getUserByUsername(env, body.username) : null;
       if (!u || !body.password || !(await verifyUserPassword(body.password, u.password_hash, u.password_salt))) {
         ctx.waitUntil(writeLoginLog(env, req, "login", "fail", "invalid_credentials"));
