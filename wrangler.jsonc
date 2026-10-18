@@ -5,9 +5,12 @@
   "compatibility_date": "2026-09-01",
 
   // 自定义域名（zone 需与 Worker 同一账号）
-  "routes": [
-    { "pattern": "wangpanxxkfj.kdns.fr", "custom_domain": true }
-  ],
+  // ⚠️ 已迁移至账号 cloud-r2pan1（42bd6aeed7ea98208983f7c1ed82aec0），该账号下暂无 zone，
+  //    因此暂时移除自定义域名路由，改用 workers.dev 入口：cloud-r2pan.cloud-r2pan1.workers.dev
+  //    待 cloud-r2pan1 账号下具备域名后，恢复下面的路由并重新部署即可。
+  // "routes": [
+  //   { "pattern": "wangpanxxkfj.kdns.fr", "custom_domain": true }
+  // ],
 
   // ═══════════════ 基础设施资源绑定（自动查找/创建） ═══════════════
   // 本地开发时 wrangler dev 自动创建本地实例；
@@ -17,7 +20,7 @@
     {
       "binding": "db",
       "database_name": "cloud-r2pan",
-      "database_id": "9f0bb249-1fe2-481b-93a7-c29dca6ad1d0"
+      "database_id": "21040925-e3d3-4bb5-b639-5ff9456684ed"
     }
   ],
   // ⚠️ R2 是可选的 —— 如果你改用其他 S3 兼容存储（见下方 analytics_engine_datasets），
