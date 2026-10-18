@@ -12,15 +12,20 @@
  *   MOVE      —— 移动 / 重命名 文件或目录
  *   COPY      —— 复制文件或目录
  *
- * 认证：HTTP Basic Auth，用户名密码在管理后台设置（settings.webdav_username / webdav_password_hash）
+ * 认证：HTTP Basic Auth，两套账号映射到两个互相隔离的空间：
+ *   - 管理员/全局空间：设置里的 webdav_username / webdav_password_hash
+ *     → 作用域 owner_id IS NULL（历史与后台上传的文件）
+ *   - 成员空间：成员自己的用户名 / 密码（users 表，PBKDF2 校验）
+ *     → 作用域 owner_id = 该成员 id，只能看到/操作自己的文件
  * 存储：复用 StorageProvider（R2 / S3），文件元数据存 D1 files 表，目录存 directories 表
  */
 
 import type { Env } from "./types";
-import { getSettings } from "./settings";
-import { sha256Hex, safeEqual, randomHex } from "./crypto";
+import { getSettings, getStorageUsedBytes, STORAGE_LIMIT_BYTES } from "./settings";
+import { sha256Hex, safeEqual } from "./crypto";
 import { createStorageProvider, type StorageProvider } from "./storage";
 import { randomId } from "./db";
+import { getUserByUsername, isUserUsable, verifyUserPassword } from "./authz";
 
 /* ═══════════ 懒加载 StorageProvider ═══════════ */
 let _storagePromise: Promise<StorageProvider> | null = null;
@@ -74,6 +79,16 @@ function tsToRfc1123(ts: number): string {
 
 /* ═══════════ Basic Auth 认证 ═══════════ */
 
+/** 已解析的 WebDAV 身份上下文 */
+interface WebDavAuth {
+  /** null = 管理员/全局空间（owner_id IS NULL）；否则为成员 id */
+  scopeOwnerId: string | null;
+  isAdmin: boolean;
+  username: string;
+  /** 成员个人配额（null = 不限，仅受全局上限约束） */
+  quotaBytes: number | null;
+}
+
 /** 解析 Basic Auth 头 → {username, password} 或 null */
 function parseBasicAuth(authHeader: string | null): { username: string; password: string } | null {
   if (!authHeader || !authHeader.startsWith("Basic ")) return null;
@@ -87,27 +102,42 @@ function parseBasicAuth(authHeader: string | null): { username: string; password
   }
 }
 
-/** 验证 WebDAV Basic Auth */
-async function checkWebDAVAuth(req: Request, env: Env): Promise<boolean> {
+/**
+ * 验证 WebDAV Basic Auth，返回身份上下文（含空间作用域）。
+ *   - 设置里的固定管理员账号 → 全局空间（owner_id IS NULL）
+ *   - users 表里的账号（任意可用用户）→ 自己的空间（owner_id = 该用户 id）
+ */
+async function checkWebDAVAuth(req: Request, env: Env): Promise<WebDavAuth | null> {
   const settings = await getSettings(env);
-  if (!settings.webdavEnabled) return false;
-  if (!settings.webdavPasswordHash) return false;
+  if (!settings.webdavEnabled) return null;
 
   const auth = parseBasicAuth(req.headers.get("authorization"));
-  if (!auth) return false;
-  if (auth.username !== settings.webdavUsername) return false;
+  if (!auth) return null;
 
-  // 密码校验：salt:sha256(salt:password)
-  const stored = settings.webdavPasswordHash;
-  const i = stored.indexOf(":");
-  if (i < 0) return false;
-  const salt = stored.slice(0, i);
-  const want = stored.slice(i + 1);
-  const got = await sha256Hex(salt + ":" + auth.password);
-  return safeEqual(want, got);
+  // ① 管理员空间：设置里的固定账号（密码校验：salt:sha256(salt:password)）
+  if (settings.webdavPasswordHash && auth.username === settings.webdavUsername) {
+    const stored = settings.webdavPasswordHash;
+    const i = stored.indexOf(":");
+    if (i > 0) {
+      const salt = stored.slice(0, i);
+      const want = stored.slice(i + 1);
+      const got = await sha256Hex(salt + ":" + auth.password);
+      if (safeEqual(want, got)) {
+        return { scopeOwnerId: null, isAdmin: true, username: auth.username, quotaBytes: null };
+      }
+    }
+    // 用户名命中管理员账号但密码错误：直接拒绝，不再回退成员表（避免账号歧义）
+    return null;
+  }
+
+  // ② 成员空间：users 表里的账号
+  const u = await getUserByUsername(env, auth.username);
+  if (!u || !isUserUsable(u)) return null;
+  if (!(await verifyUserPassword(auth.password, u.password_hash, u.password_salt))) return null;
+  return { scopeOwnerId: u.id, isAdmin: false, username: u.username, quotaBytes: u.quota_bytes };
 }
 
-/* ═══════════ 数据库辅助查询 ═══════════ */
+/* ═══════════ 数据库辅助查询（全部按 owner 作用域隔离）═══════════ */
 
 interface DBFile {
   id: string;
@@ -119,46 +149,62 @@ interface DBFile {
   uploaded_at: number;
 }
 
-/** 查找一个文件（精确 path + name） */
-async function findFile(env: Env, dir: string, name: string): Promise<DBFile | null> {
+/** 查找一个文件（精确 path + name，限定在 owner 空间内） */
+async function findFile(env: Env, owner: string | null, dir: string, name: string): Promise<DBFile | null> {
   const path = dir === "/" ? `/${name}` : `${dir}/${name}`;
-  return await env.db
-    .prepare("SELECT id, key, name, size, mime, path, uploaded_at FROM files WHERE path = ?1 AND name = ?2")
-    .bind(path, name)
-    .first<DBFile>();
+  const base = "SELECT id, key, name, size, mime, path, uploaded_at FROM files WHERE path = ? AND name = ?";
+  if (owner === null) {
+    return await env.db.prepare(base + " AND owner_id IS NULL").bind(path, name).first<DBFile>();
+  }
+  return await env.db.prepare(base + " AND owner_id = ?").bind(path, name, owner).first<DBFile>();
 }
 
-/** 查找目录是否存在（directories 表 或 有文件直接在其中） */
-async function directoryExists(env: Env, path: string): Promise<boolean> {
+/** 查找目录是否存在（directories 表 或 有文件直接在其中），限定 owner 空间 */
+async function directoryExists(env: Env, owner: string | null, path: string): Promise<boolean> {
   path = path === "/" ? "/" : path.replace(/\/$/, "");
   if (path === "/") return true; // 根目录永远存在
+  const ownerKey = owner ?? ""; // admin 空间用空串（directories 复合主键不接受 NULL）
   // directories 表
-  const dir: any = await env.db.prepare("SELECT 1 FROM directories WHERE path = ?1").bind(path).first();
+  const dir: any = await env.db
+    .prepare("SELECT 1 FROM directories WHERE path = ? AND owner_key = ?")
+    .bind(path, ownerKey)
+    .first();
   if (dir) return true;
   // 有文件直接在这个目录下（不是子目录）
-  const child: any = await env.db
-    .prepare("SELECT 1 FROM files WHERE path = ?1 LIMIT 1")
-    .bind(path)
-    .first();
+  const child: any =
+    owner === null
+      ? await env.db.prepare("SELECT 1 FROM files WHERE path = ? AND owner_id IS NULL LIMIT 1").bind(path).first()
+      : await env.db.prepare("SELECT 1 FROM files WHERE path = ? AND owner_id = ? LIMIT 1").bind(path, owner).first();
   if (child) return true;
   // 有文件以这个目录开头（更深层）—— 也算存在
-  const deeper: any = await env.db
-    .prepare("SELECT 1 FROM files WHERE path LIKE ?1 LIMIT 1")
-    .bind(path + "/%")
-    .first();
+  const deeper: any =
+    owner === null
+      ? await env.db.prepare("SELECT 1 FROM files WHERE path LIKE ? AND owner_id IS NULL LIMIT 1").bind(path + "/%").first()
+      : await env.db.prepare("SELECT 1 FROM files WHERE path LIKE ? AND owner_id = ? LIMIT 1").bind(path + "/%", owner).first();
   return !!deeper;
 }
 
-/** 列出目录的直接子项（文件 + 子目录） */
-async function listDirChildren(env: Env, path: string): Promise<{ files: DBFile[]; dirs: string[] }> {
+/** 列出目录的直接子项（文件 + 子目录），限定 owner 空间 */
+async function listDirChildren(
+  env: Env,
+  owner: string | null,
+  path: string
+): Promise<{ files: DBFile[]; dirs: string[] }> {
   path = path === "/" ? "" : path; // 查询时根目录用 "" 前缀
   const nextSlash = path ? path + "/" : "/";
 
   // 1. 直接子文件：path = 父路径 + "/" + name（精确）
-  const { results: files } = await env.db
-    .prepare("SELECT id, key, name, size, mime, path, uploaded_at FROM files WHERE path LIKE ?1")
-    .bind(path === "" ? "/%" : path + "/%")
-    .all<DBFile>();
+  const filesLike = path === "" ? "/%" : path + "/%";
+  const { results: files } =
+    owner === null
+      ? await env.db
+          .prepare("SELECT id, key, name, size, mime, path, uploaded_at FROM files WHERE path LIKE ? AND owner_id IS NULL")
+          .bind(filesLike)
+          .all<DBFile>()
+      : await env.db
+          .prepare("SELECT id, key, name, size, mime, path, uploaded_at FROM files WHERE path LIKE ? AND owner_id = ?")
+          .bind(filesLike, owner)
+          .all<DBFile>();
 
   // 过滤出直接子文件（不是子目录里的）
   const directFiles: DBFile[] = [];
@@ -177,7 +223,7 @@ async function listDirChildren(env: Env, path: string): Promise<{ files: DBFile[
       }
     } else {
       // 子目录下：path="/dir"，f.path="/dir/sub" 或 "/dir/file.txt"
-      const rest = relPath.slice(nextSlash.length - 1); // 去掉 "/dir" 前缀
+      const rest = relPath.slice(nextSlash.length); // 去掉 "/dir/" 前缀
       if (!rest) continue;
       const slashIdx = rest.indexOf("/");
       if (slashIdx < 0) {
@@ -192,9 +238,11 @@ async function listDirChildren(env: Env, path: string): Promise<{ files: DBFile[
 
   // 2. directories 表里显式创建的子目录
   const dirPrefix = path === "" ? "/" : nextSlash;
+  const excludeSelf = path === "" ? "/" : path;
+  const ownerKey = owner ?? "";
   const { results: explicitDirs } = await env.db
-    .prepare("SELECT path FROM directories WHERE path LIKE ?1 AND path != ?2")
-    .bind(dirPrefix + "%", path === "" ? "/" : path)
+    .prepare("SELECT path FROM directories WHERE path LIKE ? AND path != ? AND owner_key = ?")
+    .bind(dirPrefix + "%", excludeSelf, ownerKey)
     .all<{ path: string }>();
 
   for (const d of explicitDirs) {
@@ -203,7 +251,7 @@ async function listDirChildren(env: Env, path: string): Promise<{ files: DBFile[
       const parts = d.path.split("/").filter(Boolean);
       if (parts.length >= 1) subDirSet.add("/" + parts[0]);
     } else {
-      const rest = d.path.slice(nextSlash.length - 1);
+      const rest = d.path.slice(nextSlash.length); // 去掉 "/dir/" 前缀
       if (!rest) continue;
       const slashIdx = rest.indexOf("/");
       if (slashIdx < 0) {
@@ -217,6 +265,15 @@ async function listDirChildren(env: Env, path: string): Promise<{ files: DBFile[
   return { files: directFiles, dirs: Array.from(subDirSet).sort() };
 }
 
+/** 某成员已占用的存储字节数（仅统计自己名下的文件） */
+async function ownerUsedBytes(env: Env, ownerId: string): Promise<number> {
+  const row = await env.db
+    .prepare("SELECT COALESCE(SUM(size), 0) AS total FROM files WHERE owner_id = ?")
+    .bind(ownerId)
+    .first<{ total: number }>();
+  return Number(row?.total ?? 0) || 0;
+}
+
 /* ═══════════ PROPFIND XML 生成 ═══════════ */
 
 function escapeXml(s: string): string {
@@ -226,35 +283,6 @@ function escapeXml(s: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
-}
-
-/** 为单个文件生成 propstat XML */
-function filePropstat(file: DBFile, href: string): string {
-  const displayName = escapeXml(file.name);
-  const mime = escapeXml(file.mime || "application/octet-stream");
-  const lastModified = tsToRfc1123(file.uploaded_at);
-  const creationDate = new Date(file.uploaded_at).toISOString();
-  return `
-  <response>
-    <href>${escapeXml(href)}</href>
-    <propstat>
-      <prop>
-        <resourcetype><collection/></resourcetype>
-      </prop>
-      <status>HTTP/1.1 200 OK</status>
-    </propstat>
-    <propstat>
-      <prop>
-        <getcontentlength>${file.size}</getcontentlength>
-        <getcontenttype>${mime}</getcontenttype>
-        <getetag>"${file.id}"</getetag>
-        <getlastmodified>${lastModified}</getlastmodified>
-        <creationdate>${creationDate}</creationdate>
-        <displayname>${displayName}</displayname>
-      </prop>
-      <status>HTTP/1.1 200 OK</status>
-    </propstat>
-  </response>`;
 }
 
 function filePropstatAsFile(file: DBFile, href: string): string {
@@ -341,8 +369,9 @@ export async function handleWebDAV(
     });
   }
 
-  // 2. 认证
-  if (!(await checkWebDAVAuth(req, env))) {
+  // 2. 认证 —— 同时解析出所属空间作用域
+  const auth = await checkWebDAVAuth(req, env);
+  if (!auth) {
     return new Response("Unauthorized", {
       status: 401,
       headers: {
@@ -352,33 +381,37 @@ export async function handleWebDAV(
     });
   }
 
-  // 3. 检查根路径限制（settings.webdav_root_path）
-  const settings = await getSettings(env);
-  if (settings.webdavRootPath && settings.webdavRootPath !== "/") {
-    const root = settings.webdavRootPath.replace(/\/+$/, "") || "/";
-    if (!internalPath.startsWith(root)) {
-      return new Response("Forbidden", { status: 403 });
+  // 3. 根路径限制（仅管理员空间的设置生效）
+  if (auth.isAdmin) {
+    const settings = await getSettings(env);
+    if (settings.webdavRootPath && settings.webdavRootPath !== "/") {
+      const root = settings.webdavRootPath.replace(/\/+$/, "") || "/";
+      if (!internalPath.startsWith(root)) {
+        return new Response("Forbidden", { status: 403 });
+      }
     }
   }
+
+  const owner = auth.scopeOwnerId;
 
   // 4. 分发到各方法处理
   switch (method) {
     case "PROPFIND":
-      return handlePropfind(req, env, url, internalPath);
+      return handlePropfind(req, env, url, internalPath, owner);
     case "GET":
-      return handleWebDavGet(req, env, internalPath, false);
+      return handleWebDavGet(req, env, internalPath, owner, false);
     case "HEAD":
-      return handleWebDavGet(req, env, internalPath, true);
+      return handleWebDavGet(req, env, internalPath, owner, true);
     case "PUT":
-      return handleWebDavPut(req, env, internalPath);
+      return handleWebDavPut(req, env, internalPath, auth);
     case "DELETE":
-      return handleWebDavDelete(env, internalPath);
+      return handleWebDavDelete(env, internalPath, owner);
     case "MKCOL":
-      return handleWebDavMkcol(env, internalPath);
+      return handleWebDavMkcol(env, internalPath, owner);
     case "MOVE":
-      return handleWebDavMove(req, env, url, internalPath);
+      return handleWebDavMove(req, env, internalPath, owner);
     case "COPY":
-      return handleWebDavCopy(req, env, url, internalPath);
+      return handleWebDavCopy(req, env, internalPath, auth);
     default:
       return new Response("Method Not Allowed", { status: 405 });
   }
@@ -386,22 +419,27 @@ export async function handleWebDAV(
 
 /* ═══════════ PROPFIND ═══════════ */
 
+/** 从内部路径拆分目录与文件名 */
+function splitPath(internalPath: string): { dir: string; name: string } {
+  const lastSlash = internalPath.lastIndexOf("/");
+  const dir = lastSlash <= 0 ? "/" : internalPath.slice(0, lastSlash);
+  const name = internalPath.slice(lastSlash + 1);
+  return { dir, name };
+}
+
 async function handlePropfind(
   req: Request,
   env: Env,
   url: URL,
-  internalPath: string
+  internalPath: string,
+  owner: string | null
 ): Promise<Response> {
   const depth = req.headers.get("depth") || "1"; // 0 / 1 / infinity
   const baseUrl = url.origin;
 
-  const pathExists = await directoryExists(env, internalPath);
+  const pathExists = await directoryExists(env, owner, internalPath);
   const file = pathExists && internalPath !== "/"
-    ? await env.db
-        .prepare("SELECT id, key, name, size, mime, path, uploaded_at FROM files WHERE path = ?1 AND name = ?2")
-        .bind(internalPath.slice(0, internalPath.lastIndexOf("/")) || "/",
-              internalPath.split("/").filter(Boolean).pop() || "")
-        .first<DBFile>()
+    ? await findFile(env, owner, splitPath(internalPath).dir, splitPath(internalPath).name)
     : null;
 
   // 检查这到底是个文件还是目录
@@ -433,7 +471,7 @@ async function handlePropfind(
   const responses: string[] = [dirPropstat(internalPath, baseUrl)];
 
   if (depth === "1") {
-    const { files, dirs } = await listDirChildren(env, internalPath);
+    const { files, dirs } = await listDirChildren(env, owner, internalPath);
     for (const d of dirs) {
       responses.push(dirPropstat(d, baseUrl));
     }
@@ -443,7 +481,7 @@ async function handlePropfind(
     }
   } else {
     // infinity —— 递归列出所有
-    await collectAll(env, internalPath, baseUrl, responses);
+    await collectAll(env, owner, internalPath, baseUrl, responses);
   }
 
   const body = multistatusXML(responses);
@@ -456,14 +494,15 @@ async function handlePropfind(
 /** 递归收集目录下所有子项（Depth: infinity） */
 async function collectAll(
   env: Env,
+  owner: string | null,
   path: string,
   baseUrl: string,
   responses: string[]
 ): Promise<void> {
-  const { files, dirs } = await listDirChildren(env, path);
+  const { files, dirs } = await listDirChildren(env, owner, path);
   for (const d of dirs) {
     responses.push(dirPropstat(d, baseUrl));
-    await collectAll(env, d, baseUrl, responses);
+    await collectAll(env, owner, d, baseUrl, responses);
   }
   for (const f of files) {
     const href = buildHref(baseUrl, f.path);
@@ -477,19 +516,17 @@ async function handleWebDavGet(
   req: Request,
   env: Env,
   internalPath: string,
+  owner: string | null,
   headOnly: boolean
 ): Promise<Response> {
-  // 拆分为 dir + name
-  const lastSlash = internalPath.lastIndexOf("/");
-  const dir = lastSlash <= 0 ? "/" : internalPath.slice(0, lastSlash);
-  const name = internalPath.slice(lastSlash + 1);
+  const { dir, name } = splitPath(internalPath);
 
   if (!name) {
     // 目录 —— 返回目录列表或错误
     return new Response("Not a file", { status: 409 });
   }
 
-  const file = await findFile(env, dir, name);
+  const file = await findFile(env, owner, dir, name);
   if (!file) {
     return new Response("Not Found", { status: 404 });
   }
@@ -551,24 +588,51 @@ async function handleWebDavGet(
 async function handleWebDavPut(
   req: Request,
   env: Env,
-  internalPath: string
+  internalPath: string,
+  auth: WebDavAuth
 ): Promise<Response> {
-  // 拆分为 dir + name
-  const lastSlash = internalPath.lastIndexOf("/");
-  const dir = lastSlash <= 0 ? "/" : internalPath.slice(0, lastSlash);
-  const name = internalPath.slice(lastSlash + 1);
+  const owner = auth.scopeOwnerId;
+  const { dir, name } = splitPath(internalPath);
 
   if (!name) {
     return new Response("No file name", { status: 400 });
   }
 
   // 父目录必须存在
-  if (!(await directoryExists(env, dir))) {
+  if (!(await directoryExists(env, owner, dir))) {
     return new Response("Conflict: parent directory does not exist", { status: 409 });
   }
 
   const mime = req.headers.get("content-type") || "application/octet-stream";
   const st = await storage(env);
+
+  // 同名文件（覆盖写）—— 提前查出，用于容量增量核算
+  const existing = await findFile(env, owner, dir, name);
+
+  // ── 全局存储容量硬上限核验（覆盖写按增量计）──
+  const usedBefore = await getStorageUsedBytes(env);
+  const baseline = usedBefore - (existing?.size ?? 0);
+  if (baseline >= STORAGE_LIMIT_BYTES) {
+    return new Response("Insufficient Storage: 9.9 GB limit reached", { status: 507 });
+  }
+  const declaredLen = parseInt(req.headers.get("content-length") || "", 10);
+  if (Number.isFinite(declaredLen) && baseline + declaredLen > STORAGE_LIMIT_BYTES) {
+    return new Response("Insufficient Storage: upload would exceed the 9.9 GB limit", { status: 507 });
+  }
+
+  // ── 成员个人配额核验（仅成员空间）──
+  let ownerBase = 0;
+  const quota = auth.quotaBytes;
+  if (owner && quota != null) {
+    const ownerUsed = await ownerUsedBytes(env, owner);
+    ownerBase = ownerUsed - (existing?.size ?? 0);
+    if (ownerBase >= quota) {
+      return new Response("Insufficient Storage: personal quota reached", { status: 507 });
+    }
+    if (Number.isFinite(declaredLen) && ownerBase + declaredLen > quota) {
+      return new Response("Insufficient Storage: upload would exceed your personal quota", { status: 507 });
+    }
+  }
 
   // 生成文件记录
   const id = randomId(14);
@@ -585,11 +649,25 @@ async function handleWebDavPut(
   } catch (err: any) {
     return new Response(`Storage error: ${err?.message || err}`, { status: 502 });
   }
+  // 大小兜底：流式 body 在部分后端拿不到大小，用 head 补一次
+  if (!size) {
+    const head = await st.head(key).catch(() => null);
+    if (head) size = head.size;
+  }
 
-  // 检查是否已存在同名文件（覆盖）
-  const existing = await findFile(env, dir, name);
+  // ── 强制撤回：本次写入把全局总量顶过 9.9 GB 时，删除刚写入的对象 ──
+  if (baseline + size > STORAGE_LIMIT_BYTES) {
+    await st.delete(key).catch(() => {});
+    return new Response("Insufficient Storage: upload rolled back (9.9 GB limit)", { status: 507 });
+  }
+  // ── 强制撤回：超出成员个人配额时，删除刚写入的对象 ──
+  if (owner && quota != null && ownerBase + size > quota) {
+    await st.delete(key).catch(() => {});
+    return new Response("Insufficient Storage: upload rolled back (personal quota)", { status: 507 });
+  }
+
+  // 覆盖同名文件：删除旧文件 + 关联的 shares
   if (existing) {
-    // 删除旧文件 + 关联的 shares
     try {
       await env.db.batch([
         env.db.prepare("DELETE FROM shares WHERE file_id = ?1").bind(existing.id),
@@ -600,12 +678,12 @@ async function handleWebDavPut(
     } catch { /* 忽略清理失败 */ }
   }
 
-  // 插入新文件记录
+  // 插入新文件记录（带 owner 归属）
   const fullPath = dir === "/" ? `/${name}` : `${dir}/${name}`;
   try {
     await env.db.prepare(
-      "INSERT INTO files(id, key, name, size, mime, path, uploaded_at) VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7)"
-    ).bind(id, key, name, size, mime, fullPath, now).run();
+      "INSERT INTO files(id, key, name, size, mime, path, uploaded_at, owner_id) VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)"
+    ).bind(id, key, name, size, mime, fullPath, now, owner).run();
   } catch (err: any) {
     // D1 失败 —— 清理 storage
     await st.delete(key).catch(() => {});
@@ -620,18 +698,16 @@ async function handleWebDavPut(
 
 /* ═══════════ DELETE ═══════════ */
 
-async function handleWebDavDelete(env: Env, internalPath: string): Promise<Response> {
+async function handleWebDavDelete(env: Env, internalPath: string, owner: string | null): Promise<Response> {
   if (internalPath === "/") {
     return new Response("Cannot delete root", { status: 403 });
   }
 
-  const lastSlash = internalPath.lastIndexOf("/");
-  const dir = lastSlash <= 0 ? "/" : internalPath.slice(0, lastSlash);
-  const name = internalPath.slice(lastSlash + 1);
+  const { dir, name } = splitPath(internalPath);
 
   // 1. 先看是不是文件
   if (name) {
-    const file = await findFile(env, dir, name);
+    const file = await findFile(env, owner, dir, name);
     if (file) {
       const st = await storage(env);
       await env.db.batch([
@@ -645,14 +721,20 @@ async function handleWebDavDelete(env: Env, internalPath: string): Promise<Respo
   }
 
   // 2. 看看是不是目录
-  if (await directoryExists(env, internalPath)) {
+  if (await directoryExists(env, owner, internalPath)) {
     // 递归删除目录下所有文件
     const st = await storage(env);
     const likePattern = internalPath + "/%";
-    const { results: files } = await env.db
-      .prepare("SELECT id, key FROM files WHERE path LIKE ?1")
-      .bind(likePattern)
-      .all<{ id: string; key: string }>();
+    const { results: files } =
+      owner === null
+        ? await env.db
+            .prepare("SELECT id, key FROM files WHERE path LIKE ? AND owner_id IS NULL")
+            .bind(likePattern)
+            .all<{ id: string; key: string }>()
+        : await env.db
+            .prepare("SELECT id, key FROM files WHERE path LIKE ? AND owner_id = ?")
+            .bind(likePattern, owner)
+            .all<{ id: string; key: string }>();
 
     for (const f of files) {
       await env.db.batch([
@@ -664,7 +746,10 @@ async function handleWebDavDelete(env: Env, internalPath: string): Promise<Respo
     }
 
     // 删除目录本身（directories 表）
-    await env.db.prepare("DELETE FROM directories WHERE path = ?1").bind(internalPath).run();
+    await env.db
+      .prepare("DELETE FROM directories WHERE path = ? AND owner_key = ?")
+      .bind(internalPath, owner ?? "")
+      .run();
 
     return new Response("", { status: 204 });
   }
@@ -674,23 +759,21 @@ async function handleWebDavDelete(env: Env, internalPath: string): Promise<Respo
 
 /* ═══════════ MKCOL ═══════════ */
 
-async function handleWebDavMkcol(env: Env, internalPath: string): Promise<Response> {
+async function handleWebDavMkcol(env: Env, internalPath: string, owner: string | null): Promise<Response> {
   if (internalPath === "/") {
     return new Response("Root exists", { status: 200 });
   }
 
   // 父目录必须存在
   const parent = internalPath.slice(0, internalPath.lastIndexOf("/")) || "/";
-  if (!(await directoryExists(env, parent))) {
+  if (!(await directoryExists(env, owner, parent))) {
     return new Response("Conflict: parent does not exist", { status: 409 });
   }
 
   // 目标不能是已存在的文件
-  const lastSlash = internalPath.lastIndexOf("/");
-  const pdir = lastSlash <= 0 ? "/" : internalPath.slice(0, lastSlash);
-  const pname = internalPath.slice(lastSlash + 1);
+  const { dir: pdir, name: pname } = splitPath(internalPath);
   if (pname) {
-    const existingFile = await findFile(env, pdir, pname);
+    const existingFile = await findFile(env, owner, pdir, pname);
     if (existingFile) {
       return new Response("Method Not Allowed: file exists here", { status: 405 });
     }
@@ -699,8 +782,8 @@ async function handleWebDavMkcol(env: Env, internalPath: string): Promise<Respon
   // 已经存在也返回 201（WebDAV 规范）
   try {
     await env.db.prepare(
-      "INSERT INTO directories(path, created_at) VALUES(?1, ?2) ON CONFLICT(path) DO NOTHING"
-    ).bind(internalPath, Date.now()).run();
+      "INSERT INTO directories(path, owner_key, created_at) VALUES(?1, ?2, ?3) ON CONFLICT(path, owner_key) DO NOTHING"
+    ).bind(internalPath, owner ?? "", Date.now()).run();
   } catch (err: any) {
     return new Response(`DB error: ${err?.message || err}`, { status: 502 });
   }
@@ -713,8 +796,8 @@ async function handleWebDavMkcol(env: Env, internalPath: string): Promise<Respon
 async function handleWebDavMove(
   req: Request,
   env: Env,
-  url: URL,
-  internalPath: string
+  internalPath: string,
+  owner: string | null
 ): Promise<Response> {
   const destHeader = req.headers.get("destination");
   if (!destHeader) {
@@ -733,36 +816,36 @@ async function handleWebDavMove(
   const overwrite = (req.headers.get("overwrite") || "T").toUpperCase() === "T";
 
   // 检查源是否存在
-  const srcExists = await directoryExists(env, internalPath);
-  const srcFile = await pathIsFile(env, internalPath);
+  const srcExists = await directoryExists(env, owner, internalPath);
+  const srcFile = await pathIsFile(env, owner, internalPath);
   if (!srcExists && !srcFile) {
     return new Response("Not Found", { status: 404 });
   }
 
   // 目标父目录必须存在
   const destParent = destPath.slice(0, destPath.lastIndexOf("/")) || "/";
-  if (!(await directoryExists(env, destParent))) {
+  if (!(await directoryExists(env, owner, destParent))) {
     return new Response("Conflict", { status: 409 });
   }
 
   // 检查目标是否存在
-  const destExists = await directoryExists(env, destPath);
-  const destFile = await pathIsFile(env, destPath);
+  const destExists = await directoryExists(env, owner, destPath);
+  const destFile = await pathIsFile(env, owner, destPath);
   if ((destExists || destFile) && !overwrite) {
     return new Response("Precondition Failed: destination exists", { status: 412 });
   }
 
   // 如果目标已存在，先删除
   if (destExists || destFile) {
-    await handleWebDavDelete(env, destPath);
+    await handleWebDavDelete(env, destPath, owner);
   }
 
   if (srcFile) {
     // 移动文件
-    await moveFile(env, internalPath, destPath);
+    await moveFile(env, owner, internalPath, destPath);
   } else {
     // 移动目录（递归更新 path）
-    await moveDirectory(env, internalPath, destPath);
+    await moveDirectory(env, owner, internalPath, destPath);
   }
 
   return new Response("", { status: destExists || destFile ? 204 : 201 });
@@ -773,9 +856,10 @@ async function handleWebDavMove(
 async function handleWebDavCopy(
   req: Request,
   env: Env,
-  url: URL,
-  internalPath: string
+  internalPath: string,
+  auth: WebDavAuth
 ): Promise<Response> {
+  const owner = auth.scopeOwnerId;
   const destHeader = req.headers.get("destination");
   if (!destHeader) {
     return new Response("Missing Destination header", { status: 400 });
@@ -791,27 +875,40 @@ async function handleWebDavCopy(
 
   const overwrite = (req.headers.get("overwrite") || "T").toUpperCase() === "T";
 
-  const srcFile = await pathIsFile(env, internalPath);
+  const srcFile = await pathIsFile(env, owner, internalPath);
   if (!srcFile) {
     return new Response("Only file copy supported", { status: 501 });
   }
 
   const destParent = destPath.slice(0, destPath.lastIndexOf("/")) || "/";
-  if (!(await directoryExists(env, destParent))) {
+  if (!(await directoryExists(env, owner, destParent))) {
     return new Response("Conflict", { status: 409 });
   }
 
-  const destFile = await pathIsFile(env, destPath);
+  const destFile = await pathIsFile(env, owner, destPath);
   if (destFile && !overwrite) {
     return new Response("Precondition Failed", { status: 412 });
   }
   if (destFile) {
-    await handleWebDavDelete(env, destPath);
+    await handleWebDavDelete(env, destPath, owner);
   }
 
   const st = await storage(env);
   const srcObj = await st.get(srcFile.key);
   if (!srcObj) return new Response("Source not found", { status: 404 });
+
+  // ── 存储容量硬上限：复制会新增一份，超限直接拒绝 ──
+  const usedBefore = await getStorageUsedBytes(env);
+  if (usedBefore + srcFile.size > STORAGE_LIMIT_BYTES) {
+    return new Response("Insufficient Storage: copy would exceed the 9.9 GB limit", { status: 507 });
+  }
+  // ── 成员个人配额：复制同样计入 ──
+  if (owner && auth.quotaBytes != null) {
+    const ownerUsed = await ownerUsedBytes(env, owner);
+    if (ownerUsed + srcFile.size > auth.quotaBytes) {
+      return new Response("Insufficient Storage: copy would exceed your personal quota", { status: 507 });
+    }
+  }
 
   const newId = randomId(14);
   const newKey = `files/${newId}`;
@@ -820,35 +917,28 @@ async function handleWebDavCopy(
   await st.put(newKey, srcObj.body, { contentType: srcFile.mime });
 
   await env.db.prepare(
-    "INSERT INTO files(id, key, name, size, mime, path, uploaded_at) VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7)"
-  ).bind(newId, newKey, newName, srcFile.size, srcFile.mime, destPath, Date.now()).run();
+    "INSERT INTO files(id, key, name, size, mime, path, uploaded_at, owner_id) VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)"
+  ).bind(newId, newKey, newName, srcFile.size, srcFile.mime, destPath, Date.now(), owner).run();
 
   return new Response("", { status: 201 });
 }
 
 /* ═══════════ 辅助：判断路径是否是文件 ═══════════ */
 
-async function pathIsFile(env: Env, p: string): Promise<DBFile | null> {
-  const lastSlash = p.lastIndexOf("/");
-  const dir = lastSlash <= 0 ? "/" : p.slice(0, lastSlash);
-  const name = p.slice(lastSlash + 1);
+async function pathIsFile(env: Env, owner: string | null, p: string): Promise<DBFile | null> {
+  const { dir, name } = splitPath(p);
   if (!name) return null;
-  return await findFile(env, dir, name);
+  return await findFile(env, owner, dir, name);
 }
 
 /* ═══════════ 辅助：移动文件 ═══════════ */
 
-async function moveFile(env: Env, srcPath: string, destPath: string): Promise<void> {
-  const srcLast = srcPath.lastIndexOf("/");
-  const srcDir = srcLast <= 0 ? "/" : srcPath.slice(0, srcLast);
-  const srcName = srcPath.slice(srcLast + 1);
-
-  const file = await findFile(env, srcDir, srcName);
+async function moveFile(env: Env, owner: string | null, srcPath: string, destPath: string): Promise<void> {
+  const { dir: srcDir, name: srcName } = splitPath(srcPath);
+  const file = await findFile(env, owner, srcDir, srcName);
   if (!file) return;
 
-  const destLast = destPath.lastIndexOf("/");
-  const destDir = destLast <= 0 ? "/" : destPath.slice(0, destLast);
-  const destName = destPath.slice(destLast + 1);
+  const { dir: destDir, name: destName } = splitPath(destPath);
   const fullDestPath = destDir === "/" ? `/${destName}` : `${destDir}/${destName}`;
 
   await env.db.prepare(
@@ -858,12 +948,18 @@ async function moveFile(env: Env, srcPath: string, destPath: string): Promise<vo
 
 /* ═══════════ 辅助：移动目录（递归更新 path 前缀） ═══════════ */
 
-async function moveDirectory(env: Env, srcDir: string, destDir: string): Promise<void> {
+async function moveDirectory(env: Env, owner: string | null, srcDir: string, destDir: string): Promise<void> {
   const likePattern = srcDir === "/" ? "/%" : srcDir + "/%";
-  const { results: files } = await env.db
-    .prepare("SELECT id, path FROM files WHERE path LIKE ?1")
-    .bind(likePattern)
-    .all<{ id: string; path: string }>();
+  const { results: files } =
+    owner === null
+      ? await env.db
+          .prepare("SELECT id, path FROM files WHERE path LIKE ? AND owner_id IS NULL")
+          .bind(likePattern)
+          .all<{ id: string; path: string }>()
+      : await env.db
+          .prepare("SELECT id, path FROM files WHERE path LIKE ? AND owner_id = ?")
+          .bind(likePattern, owner)
+          .all<{ id: string; path: string }>();
 
   for (const f of files) {
     let newPath: string;
@@ -877,9 +973,10 @@ async function moveDirectory(env: Env, srcDir: string, destDir: string): Promise
   }
 
   // 也更新 directories 表中的子目录记录
+  const ownerKey = owner ?? "";
   const { results: dirs } = await env.db
-    .prepare("SELECT path FROM directories WHERE path LIKE ?1")
-    .bind(likePattern)
+    .prepare("SELECT path FROM directories WHERE path LIKE ? AND owner_key = ?")
+    .bind(likePattern, ownerKey)
     .all<{ path: string }>();
 
   for (const d of dirs) {
@@ -889,13 +986,19 @@ async function moveDirectory(env: Env, srcDir: string, destDir: string): Promise
     } else {
       newPath = destDir + d.path.slice(srcDir.length);
     }
-    await env.db.prepare("DELETE FROM directories WHERE path = ?1").bind(d.path).run();
-    await env.db.prepare("INSERT INTO directories(path, created_at) VALUES(?1, ?2) ON CONFLICT(path) DO NOTHING")
-      .bind(newPath, Date.now()).run();
+    await env.db
+      .prepare("DELETE FROM directories WHERE path = ? AND owner_key = ?")
+      .bind(d.path, ownerKey)
+      .run();
+    await env.db.prepare("INSERT INTO directories(path, owner_key, created_at) VALUES(?1, ?2, ?3) ON CONFLICT(path, owner_key) DO NOTHING")
+      .bind(newPath, ownerKey, Date.now()).run();
   }
 
   // 更新目录本身
-  await env.db.prepare("DELETE FROM directories WHERE path = ?1").bind(srcDir).run();
-  await env.db.prepare("INSERT INTO directories(path, created_at) VALUES(?1, ?2) ON CONFLICT(path) DO NOTHING")
-    .bind(destDir, Date.now()).run();
+  await env.db
+    .prepare("DELETE FROM directories WHERE path = ? AND owner_key = ?")
+    .bind(srcDir, ownerKey)
+    .run();
+  await env.db.prepare("INSERT INTO directories(path, owner_key, created_at) VALUES(?1, ?2, ?3) ON CONFLICT(path, owner_key) DO NOTHING")
+    .bind(destDir, ownerKey, Date.now()).run();
 }

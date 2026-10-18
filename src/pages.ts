@@ -1,6 +1,7 @@
 import adminHTML from "../public/admin.html";
 import shareHTML from "../public/share.html";
 import marketHTML from "../public/market.html";
+import myHTML from "../public/my.html";
 import { pickLang, type L10n } from "./i18n";
 
 /**
@@ -105,6 +106,230 @@ export async function serveMarketPage(req?: Request): Promise<Response> {
   return new Response(marketHTML, { headers });
 }
 
+/** 成员前台 /my —— 会话态页面，no-store（与 admin 一致） */
+export function serveMyPage(): Response {
+  const headers = new Headers({ "content-type": "text/html;charset=utf-8", "cache-control": "no-store" });
+  addSecurityHeaders(headers);
+  return new Response(myHTML, { headers });
+}
+
+/**
+ * 根路径落地页 —— 成员与管理员统一登录入口（Edgechat 浅色玻璃风）。
+ * 成员登录调用 /api/my/login，成功后进入 /my；管理员登录调用 /api/admin/login，成功后进入 /admin。
+ */
+export function serveLandingPage(): Response {
+  const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>cloud-r2pan</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  color:#1f2521;min-height:100vh;position:relative;overflow-x:hidden;padding:24px 20px 70px;
+  background:radial-gradient(circle at 12% 8%,rgba(45,156,151,.20),transparent 32%),radial-gradient(circle at 88% 16%,rgba(90,143,203,.18),transparent 34%),radial-gradient(circle at 76% 88%,rgba(90,143,203,.13),transparent 30%),radial-gradient(circle at 28% 72%,rgba(45,156,151,.11),transparent 26%),linear-gradient(180deg,#eef5f9 0%,#e6eef4 100%);
+}
+.orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:.16;pointer-events:none;animation:drift 18s ease-in-out infinite alternate}
+.o1{width:46vmax;height:46vmax;background:#2d9c97;top:-18%;left:-14%}
+.o2{width:40vmax;height:40vmax;background:#5a8fcb;bottom:-20%;right:-10%;animation-delay:-6s}
+.o3{width:30vmax;height:30vmax;background:#7fb0d6;top:55%;left:8%;animation-delay:-12s;opacity:.14}
+@keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(6vw,-5vh) scale(1.12)}}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.wrap{min-height:calc(100vh - 94px);display:flex;align-items:center;justify-content:center}
+.card{
+  width:100%;max-width:420px;padding:32px 30px 26px;border-radius:20px;position:relative;z-index:1;
+  background:rgba(252,252,252,.55);
+  backdrop-filter:blur(30px) saturate(125%);-webkit-backdrop-filter:blur(30px) saturate(125%);
+  border:1px solid rgba(255,255,255,.55);
+  box-shadow:0 8px 24px rgba(0,0,0,.12),inset 0 0 0 1px rgba(255,255,255,.18);
+  animation:rise .48s cubic-bezier(.22,1,.36,1) both;
+}
+.head{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.logo{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(252,252,252,.55);border:1px solid rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.head h1{font-size:17px;font-weight:700;letter-spacing:-.02em}
+.head .sub{font-size:12px;color:rgba(31,37,33,.55);margin-top:2px}
+.tabs{display:flex;gap:6px;padding:4px;border-radius:12px;background:rgba(255,255,255,.42);border:1px solid rgba(88,107,124,.18);margin-bottom:20px}
+.tabs button{flex:1;padding:10px;border:none;border-radius:9px;background:transparent;color:rgba(31,37,33,.55);font-size:14px;font-weight:600;cursor:pointer;transition:all .18s}
+.tabs button.active{background:#ffffff;color:#1f2521;box-shadow:0 1px 2px rgba(13,23,49,.08)}
+.field{margin-bottom:14px;text-align:left}
+.field label{display:block;font-size:12px;color:rgba(31,37,33,.55);margin-bottom:6px;padding-left:4px}
+input{width:100%;padding:12px 14px;border-radius:14px;font-size:15px;color:#1f2521;outline:none;background:linear-gradient(180deg,rgba(255,255,255,.56),rgba(236,243,249,.4)),rgba(228,236,243,.26);border:1px solid rgba(88,107,124,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.52),0 1px 2px rgba(88,107,124,.06);transition:border-color .2s,box-shadow .2s}
+input::placeholder{color:rgba(31,37,33,.52)}
+input:focus{border-color:rgba(45,156,151,.42);box-shadow:0 0 0 3px rgba(45,156,151,.12)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px 20px;border-radius:14px;border:none;cursor:pointer;font-size:14px;font-weight:600;color:#fffaf2;background:linear-gradient(180deg,rgba(90,143,203,.92),rgba(69,121,186,.88));box-shadow:0 4px 16px rgba(90,143,203,.22);transition:transform .28s cubic-bezier(.37,0,.63,1),box-shadow .28s cubic-bezier(.37,0,.63,1)}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(90,143,203,.3)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.msg{margin-top:14px;font-size:13px;min-height:18px;text-align:center}
+.msg.err{color:#b42318}.msg.ok{color:#17857c}
+.ts-box{display:flex;justify-content:center;margin:4px 0 14px}
+.ts-box:empty{display:none}
+.links{margin-top:18px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;font-size:13px}
+.links a{color:#17857c;text-decoration:none;cursor:pointer}
+.links a.muted{color:rgba(31,37,33,.5)}
+.hidden{display:none!important}
+.lang-btn{position:fixed;top:18px;right:18px;padding:6px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.5);background:rgba(252,252,252,.55);color:#1f2521;font-size:12px;cursor:pointer}
+footer{position:fixed;bottom:20px;left:0;right:0;text-align:center;font-size:12px;color:rgba(31,37,33,.42)}
+</style>
+</head>
+<body>
+<div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+<button class="lang-btn" id="lang"></button>
+<div class="wrap">
+  <div class="card">
+    <div class="head">
+      <div class="logo">🗂️</div>
+      <div><h1>cloud-r2pan</h1><div class="sub" id="sub"></div></div>
+    </div>
+    <div class="tabs">
+      <button id="tab-member" class="active"></button>
+      <button id="tab-admin"></button>
+    </div>
+    <div id="pane-member">
+      <div class="field"><label id="l-user"></label><input id="m-user" autocomplete="username"></div>
+      <div class="field"><label id="l-pass"></label><input id="m-pass" type="password" autocomplete="current-password"></div>
+      <button class="btn" id="m-btn"></button>
+      <div class="links"><a id="to-register"></a><a class="muted" href="/market" id="to-market"></a></div>
+    </div>
+    <div id="pane-admin" class="hidden">
+      <div class="field"><label id="l-auser"></label><input id="a-user" autocomplete="username"></div>
+      <div class="field"><label id="l-apass"></label><input id="a-pass" type="password" autocomplete="current-password"></div>
+      <div class="field hidden" id="f-code"><label id="l-code"></label><input id="a-code" inputmode="numeric"></div>
+      <button class="btn" id="a-btn"></button>
+    </div>
+    <div class="ts-box" id="ts"></div>
+    <div class="msg" id="msg"></div>
+  </div>
+</div>
+<footer>Powered by cloud-r2pan</footer>
+<script>
+(function(){
+  var I18N={
+    zh:{sub:'成员与管理员统一登录入口',member:'成员登录',admin:'管理员登录',
+      user:'用户名',pass:'密码',login:'登录',adminUser:'管理员账号或密钥',adminPass:'密码（用密钥登录时留空）',
+      code:'2FA 验证码',register:'注册新账号',market:'文件市场',
+      need2fa:'请输入 2FA 验证码',bad:'用户名或密码错误',net:'网络错误，请稍后再试',tsreq:'请先完成人机验证',lang:'EN'},
+    en:{sub:'Unified sign-in for members and admins',member:'Member',admin:'Admin',
+      user:'Username',pass:'Password',login:'Sign in',adminUser:'Admin account or key',adminPass:'Password (leave empty when using the key)',
+      code:'2FA code',register:'Register',market:'Marketplace',
+      need2fa:'Enter your 2FA code',bad:'Invalid username or password',net:'Network error, please try later',tsreq:'Please complete the human verification first',lang:'中文'}
+  };
+  var lang='';
+  try{ var s=localStorage.getItem('cd_lang'); if(s==='zh'||s==='en') lang=s; }catch(e){}
+  if(!lang){ var f=String((navigator.languages&&navigator.languages[0])||navigator.language||'').toLowerCase(); lang=f.indexOf('zh')===0?'zh':'en'; }
+  function $(id){ return document.getElementById(id); }
+  function t(k){ return (I18N[lang]&&I18N[lang][k])||I18N.en[k]||k; }
+  function render(){
+    document.documentElement.lang = lang==='zh'?'zh-CN':'en';
+    $('sub').textContent=t('sub');
+    $('tab-member').textContent=t('member');
+    $('tab-admin').textContent=t('admin');
+    $('l-user').textContent=t('user'); $('l-pass').textContent=t('pass'); $('m-btn').textContent=t('login');
+    $('l-auser').textContent=t('adminUser'); $('l-apass').textContent=t('adminPass'); $('a-btn').textContent=t('login');
+    $('l-code').textContent=t('code');
+    $('to-register').textContent=t('register');
+    $('to-market').textContent=t('market');
+    $('lang').textContent=t('lang');
+  }
+  function show(text,kind){ var el=$('msg'); el.textContent=text; el.className='msg '+(kind||''); }
+  function setMode(m){
+    var isM = m==='member';
+    $('tab-member').className = isM?'active':'';
+    $('tab-admin').className = isM?'':'active';
+    $('pane-member').className = isM?'':'hidden';
+    $('pane-admin').className = isM?'hidden':'';
+    show('','');
+  }
+  function post(url,body){
+    return fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}).then(function(r){
+      return r.json().then(function(d){ return {ok:r.ok,d:d}; }).catch(function(){ return {ok:r.ok,d:{}}; });
+    });
+  }
+  /* ── Turnstile 人机验证 ── */
+  var TS={required:false,sitekey:null,widgetId:null,token:''};
+  var tsApiLoading=null;
+  function loadTurnstileApi(cb){
+    if(window.turnstile) return cb();
+    if(!tsApiLoading){
+      tsApiLoading=new Promise(function(res){
+        var s=document.createElement('script');
+        s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        s.async=true; s.defer=true;
+        s.onload=function(){res();}; s.onerror=function(){res();};
+        document.head.appendChild(s);
+      });
+    }
+    tsApiLoading.then(cb);
+  }
+  function renderTurnstile(){
+    TS.token=''; TS.widgetId=null;
+    var el=$('ts'); if(!el) return;
+    el.innerHTML='';
+    if(!TS.required||!TS.sitekey) return;
+    loadTurnstileApi(function(){
+      if(!el||!window.turnstile) return;
+      try{
+        TS.widgetId=window.turnstile.render(el,{
+          sitekey:TS.sitekey,
+          callback:function(tok){TS.token=tok;},
+          'expired-callback':function(){TS.token='';},
+          'error-callback':function(){TS.token='';}
+        });
+      }catch(e){}
+    });
+  }
+  function resetTurnstile(){
+    TS.token='';
+    try{ if(TS.widgetId!=null&&window.turnstile) window.turnstile.reset(TS.widgetId); }catch(e){}
+  }
+  function initTurnstile(){
+    fetch('/api/turnstile').then(function(r){return r.json();}).then(function(d){
+      TS.required=!!d.login; TS.sitekey=d.sitekey||null;
+    }).catch(function(){}).then(function(){ renderTurnstile(); });
+  }
+  $('lang').onclick=function(){ lang = lang==='zh'?'en':'zh'; try{localStorage.setItem('cd_lang',lang);}catch(e){} render(); };
+  $('tab-member').onclick=function(){ setMode('member'); };
+  $('tab-admin').onclick=function(){ setMode('admin'); };
+  $('to-register').onclick=function(){ location.href='/my'; };
+  $('m-btn').onclick=function(){
+    var u=$('m-user').value.trim(), p=$('m-pass').value, btn=this;
+    if(!u||!p){ show(t('bad'),'err'); return; }
+    if(TS.required&&!TS.token){ show(t('tsreq'),'err'); return; }
+    btn.disabled=true;
+    post('/api/my/login',{username:u,password:p,turnstile:TS.token}).then(function(res){
+      btn.disabled=false;
+      if(res.ok&&res.d.ok){ location.href='/my'; return; }
+      show((res.d&&res.d.error)||t('bad'),'err'); resetTurnstile();
+    }).catch(function(){ btn.disabled=false; show(t('net'),'err'); resetTurnstile(); });
+  };
+  $('a-btn').onclick=function(){
+    var user=$('a-user').value.trim(), pass=$('a-pass').value, code=$('a-code').value.trim(), btn=this;
+    if(!user){ show(t('bad'),'err'); return; }
+    if(TS.required&&!TS.token){ show(t('tsreq'),'err'); return; }
+    var body = pass ? {username:user,password:pass} : {key:user};
+    if(code) body.code=code;
+    body.turnstile = TS.token;
+    btn.disabled=true;
+    post('/api/admin/login',body).then(function(res){
+      btn.disabled=false;
+      if(res.d&&res.d.need_2fa){ $('f-code').className='field'; show(t('need2fa'),''); resetTurnstile(); return; }
+      if(res.ok&&res.d.ok){ location.href='/admin'; return; }
+      show((res.d&&res.d.error)||t('bad'),'err'); resetTurnstile();
+    }).catch(function(){ btn.disabled=false; show(t('net'),'err'); resetTurnstile(); });
+  };
+  render();
+  initTurnstile();
+})();
+</script>
+</body>
+</html>`;
+  const headers = new Headers({ "content-type": "text/html;charset=utf-8", "cache-control": "no-store" });
+  addSecurityHeaders(headers);
+  return new Response(html, { headers });
+}
+
 function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!)
@@ -130,7 +355,7 @@ export function errorPage(
     503: "🛑",
   };
   const loginBtn = opts.oauth_login_url
-    ? `<div style="margin-top:28px"><a href="${esc(opts.oauth_login_url)}" style="display:inline-block;padding:14px 40px;border-radius:18px;background:linear-gradient(180deg,#3d9bff,#0a7cff);color:#fff;text-decoration:none;font-weight:600;font-size:16px;box-shadow:0 12px 28px rgba(10,124,255,.4);transition:transform .15s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">${lang === "zh" ? "登录下载" : "Login to Download"}</a></div>`
+    ? `<div style="margin-top:28px"><a href="${esc(opts.oauth_login_url)}" style="display:inline-block;padding:12px 34px;border-radius:14px;background:linear-gradient(180deg,rgba(90,143,203,.92),rgba(69,121,186,.88));color:#fffaf2;text-decoration:none;font-weight:600;font-size:15px;box-shadow:0 4px 16px rgba(90,143,203,.22);transition:transform .28s cubic-bezier(.37,0,.63,1),box-shadow .28s cubic-bezier(.37,0,.63,1)" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 24px rgba(90,143,203,.3)'" onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 16px rgba(90,143,203,.22)'">${lang === "zh" ? "登录下载" : "Login to Download"}</a></div>`
     : "";
   const html = `<!DOCTYPE html>
 <html lang="${lang === "zh" ? "zh-CN" : "en"}">
@@ -142,37 +367,37 @@ export function errorPage(
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { height: 100%; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  padding: 24px; color: #fff; overflow: hidden; position: relative;
-  background: linear-gradient(160deg, #0b1026 0%, #1a1240 45%, #2a1045 100%);
+  padding: 24px; color: #1f2521; overflow: hidden; position: relative;
+  background: radial-gradient(circle at 12% 8%, rgba(45,156,151,.20), transparent 32%), radial-gradient(circle at 88% 16%, rgba(90,143,203,.18), transparent 34%), radial-gradient(circle at 76% 88%, rgba(90,143,203,.13), transparent 30%), radial-gradient(circle at 28% 72%, rgba(45,156,151,.11), transparent 26%), linear-gradient(180deg, #eef5f9 0%, #e6eef4 100%);
 }
-.orb { position: fixed; border-radius: 50%; filter: blur(90px); opacity: .5; pointer-events: none; animation: drift 18s ease-in-out infinite alternate; }
-.o1 { width: 46vmax; height: 46vmax; background: #38bdf8; top: -18%; left: -14%; }
-.o2 { width: 40vmax; height: 40vmax; background: #8b5cf6; bottom: -20%; right: -10%; animation-delay: -6s; }
-.o3 { width: 30vmax; height: 30vmax; background: #ec4899; top: 55%; left: 8%; animation-delay: -12s; opacity: .35; }
+.orb { position: fixed; border-radius: 50%; filter: blur(90px); opacity: .18; pointer-events: none; animation: drift 18s ease-in-out infinite alternate; }
+.o1 { width: 46vmax; height: 46vmax; background: #2d9c97; top: -18%; left: -14%; }
+.o2 { width: 40vmax; height: 40vmax; background: #5a8fcb; bottom: -20%; right: -10%; animation-delay: -6s; }
+.o3 { width: 30vmax; height: 30vmax; background: #7fb0d6; top: 55%; left: 8%; animation-delay: -12s; opacity: .16; }
 @keyframes drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(6vw, -5vh) scale(1.12); } }
 .card {
   position: relative; width: 100%; max-width: 420px; text-align: center;
-  padding: 56px 36px 44px; border-radius: 32px;
-  background: linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.05));
-  backdrop-filter: blur(32px) saturate(180%); -webkit-backdrop-filter: blur(32px) saturate(180%);
-  border: 1px solid rgba(255,255,255,.28);
-  box-shadow: 0 24px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.35);
-  animation: rise .6s cubic-bezier(.22,1.2,.36,1) both;
+  padding: 56px 36px 44px; border-radius: 20px;
+  background: rgba(252,252,252,.55);
+  backdrop-filter: blur(30px) saturate(125%); -webkit-backdrop-filter: blur(30px) saturate(125%);
+  border: 1px solid rgba(255,255,255,.55);
+  box-shadow: 0 8px 24px rgba(0,0,0,.12), inset 0 0 0 1px rgba(255,255,255,.18);
+  animation: rise .48s cubic-bezier(.22,1,.36,1) both;
 }
 @keyframes rise { from { opacity: 0; transform: translateY(24px) scale(.96); } to { opacity: 1; transform: none; } }
 .icon {
-  width: 84px; height: 84px; margin: 0 auto 22px; border-radius: 26px;
+  width: 84px; height: 84px; margin: 0 auto 22px; border-radius: 20px;
   display: flex; align-items: center; justify-content: center; font-size: 42px;
-  background: linear-gradient(145deg, rgba(255,255,255,.25), rgba(255,255,255,.08));
-  border: 1px solid rgba(255,255,255,.3);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 10px 26px rgba(0,0,0,.3);
+  background: rgba(252,252,252,.55);
+  border: 1px solid rgba(255,255,255,.55);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.18), 0 8px 24px rgba(0,0,0,.1);
 }
 h1 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 12px; }
-p { font-size: 15px; line-height: 1.65; color: rgba(255,255,255,.78); }
-.code { margin-top: 22px; font-size: 13px; color: rgba(255,255,255,.45); font-family: ui-monospace, "SF Mono", monospace; }
-.brand { position: fixed; bottom: 22px; left: 0; right: 0; text-align: center; font-size: 13px; color: rgba(255,255,255,.4); letter-spacing: .08em; }
+p { font-size: 15px; line-height: 1.65; color: rgba(31,37,33,.6); }
+.code { margin-top: 22px; font-size: 13px; color: rgba(31,37,33,.42); font-family: ui-monospace, "SF Mono", monospace; }
+.brand { position: fixed; bottom: 22px; left: 0; right: 0; text-align: center; font-size: 13px; color: rgba(31,37,33,.42); letter-spacing: .08em; }
 </style>
 </head>
 <body>

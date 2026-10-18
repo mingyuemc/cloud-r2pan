@@ -57,6 +57,11 @@ export interface Settings {
   turnstileSitekeyOverride: string | null;
   /** Turnstile secret（Cloudflare 侧的 SK 开头密钥）—— 用 admin AES-GCM 加密后存 */
   turnstileSecretCipher: string | null;
+  /**
+   * 登录 / 注册接口是否也要求人机验证（/api/my/login、/api/my/register、/api/admin/login）。
+   * 需已配置 SiteKey + Secret 才实际生效。默认开启。
+   */
+  turnstileOnLogin: boolean;
 
   // ═══════ OAuth2 下载鉴权 ═══════
   /** 是否启用 OAuth2 下载验证 */
@@ -137,6 +142,10 @@ export interface Settings {
   // ═══════ UI 主题 ═══════
   /** 管理后台 UI 主题："light"（默认白色 Apple 风格）或 "dark"（深色原风格） */
   uiTheme: "light" | "dark";
+
+  // ═══════ 成员自助注册 ═══════
+  /** 是否开放成员自助注册（仍需有效的邀请码）。关闭后仅管理员可手动创建成员。 */
+  memberRegistrationEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -155,6 +164,7 @@ export const DEFAULT_SETTINGS: Settings = {
   turnstileThreshold: 5,
   turnstileSitekeyOverride: null,
   turnstileSecretCipher: null,
+  turnstileOnLogin: true,
   // OAuth2
   oauthEnabled: false,
   oauthProvider: "github",
@@ -190,11 +200,29 @@ export const DEFAULT_SETTINGS: Settings = {
   webdavRootPath: "/",
   // UI 主题 —— 默认白色 Apple 风格
   uiTheme: "light",
+  // 成员自助注册 —— 默认开放（仍需邀请码）；关闭后仅管理员可手动创建
+  memberRegistrationEnabled: true,
 };
 
 function toInt(v: unknown, fallback: number): number {
   const n = Number(v);
   return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+/* ═══════════ 存储容量硬上限 ═══════════
+ * R2 免费额度约 10 GB，为避免超额，这里设一个 9.9 GiB 硬上限：
+ *   - 已用 >= 上限         —— 直接拒绝任何新上传（预检）
+ *   - 本次上传会顶过上限   —— 写入后立即删除该对象（强制撤回）
+ * 阈值要调整时改这里即可。
+ */
+export const STORAGE_LIMIT_BYTES = Math.floor(9.9 * 1024 ** 3); // 9.9 GiB
+
+/** 当前已占用的存储总量（字节）—— files 表 size 求和 */
+export async function getStorageUsedBytes(env: Env): Promise<number> {
+  const row = await env.db
+    .prepare("SELECT COALESCE(SUM(size), 0) AS total FROM files")
+    .first<{ total: number }>();
+  return Number(row?.total ?? 0) || 0;
 }
 
 export async function getSettings(env: Env): Promise<Settings> {
@@ -238,6 +266,7 @@ export async function getSettings(env: Env): Promise<Settings> {
     turnstileThreshold: toInt(map.get("turnstile_threshold"), DEFAULT_SETTINGS.turnstileThreshold),
     turnstileSitekeyOverride: map.get("turnstile_sitekey_override") ?? null,
     turnstileSecretCipher: map.get("turnstile_secret_cipher") ?? null,
+    turnstileOnLogin: (map.get("turnstile_login") ?? "1") === "1",
     // OAuth2
     oauthEnabled: map.get("oauth_enabled") === "1",
     oauthProvider: map.get("oauth_provider") ?? DEFAULT_SETTINGS.oauthProvider,
@@ -272,6 +301,8 @@ export async function getSettings(env: Env): Promise<Settings> {
     webdavRootPath: map.get("webdav_root_path") ?? DEFAULT_SETTINGS.webdavRootPath,
     // UI 主题
     uiTheme: (map.get("ui_theme") ?? DEFAULT_SETTINGS.uiTheme) as Settings["uiTheme"],
+    // 成员自助注册（默认 true）
+    memberRegistrationEnabled: map.get("member_registration_enabled") !== "0",
   };
 
   // ② 写入内存缓存

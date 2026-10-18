@@ -74,6 +74,35 @@ export function getTurnstileInfo(
 }
 
 /**
+ * 登录 / 注册是否需要人机验证。
+ * 三个条件缺一不可：开关打开 + SiteKey 已配（前端要渲染 widget）+ Secret 已配（后端要校验）。
+ */
+export async function isTurnstileRequiredForAuth(
+  env: Env,
+  settings: {
+    turnstileOnLogin: boolean;
+    turnstileSitekeyOverride: string | null;
+    turnstileSecretCipher: string | null;
+    turnstileMode: string;
+  }
+): Promise<boolean> {
+  if (!settings.turnstileOnLogin) return false;
+  if (!getTurnstileInfo(env, settings).sitekey) return false;
+  return !!(await getTurnstileSecret(env, settings));
+}
+
+/**
+ * GET /api/turnstile —— 公开端点：登录 / 注册页读取渲染所需信息。
+ * sitekey 是公开值，可安全下发；secret 绝不外泄。
+ */
+export async function handleTurnstileConfig(req: Request, env: Env): Promise<Response> {
+  const settings = await getSettings(env);
+  const { sitekey, mode } = getTurnstileInfo(env, settings);
+  const login = await isTurnstileRequiredForAuth(env, settings);
+  return json({ sitekey, mode, login });
+}
+
+/**
  * 验证 Turnstile token —— 向 Cloudflare siteverify 发 POST。
  * 官方要求 POST application/x-www-form-urlencoded: secret + token
  */
@@ -203,8 +232,13 @@ export async function handleShareInfo(req: Request, env: Env, token: string): Pr
       .bind(token).run().catch(() => {}); // 不 await，不阻塞响应
   }
 
+  // 直链复制按钮用：仅对「可用且无密码」的分享暴露可直接下载的 URL。
+  // 有密码的分享直链需要 ticket，复制出来也无法直接用，故不提供。
+  const directDownloadUrl = status === "ok" && !row.password_hash ? `/s/${token}/download` : null;
+
   return json({
     status,
+    direct_download_url: directDownloadUrl,
     name: row.name,
     size: row.size,
     mime: row.mime,

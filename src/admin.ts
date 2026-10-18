@@ -1,13 +1,35 @@
 import type { Env } from "./types";
 import { ensureSchema, randomId, getSchemaStatus, repairDatabase } from "./db";
 import { generateCodes, makeBatchId, formatCodeStatus, findCodeByString } from "./codes";
-import { getSettings, updateSettings } from "./settings";
-import { checkAdminKey, createSession, verifySession, clientIp, rateLimitLogin, requireAdminIp } from "./auth";
+import { getSettings, updateSettings, getStorageUsedBytes, STORAGE_LIMIT_BYTES } from "./settings";
+import { checkAdminKey, createSession, readSession, clientIp, rateLimitLogin, requireAdminIp, type SessionPayload } from "./auth";
 import { pickLang } from "./i18n";
-import { hashPassword } from "./public";
+import { hashPassword, isTurnstileRequiredForAuth, verifyTurnstileToken } from "./public";
 import { parseUA } from "./ua";
 import { encryptSecret, decryptSecret, totpGenerateSecret, totpVerify, totpUri, totpGenerateRecoveryCodes, sha256Hex, safeEqual } from "./crypto";
 import { createStorageProvider, type StorageProvider } from "./storage";
+import {
+  PERMISSIONS,
+  PERMISSION_LABELS,
+  USERNAME_RE,
+  SUPER_ONLY,
+  permissionForRoute,
+  getUserById,
+  getUserByUsername,
+  isUserUsable,
+  effectivePermissions,
+  verifyUserPassword,
+  hashUserPassword,
+  recordUserLogin,
+  bumpSessionVersion,
+  createUser,
+  getAdminPermissions,
+  setAdminPermissions,
+  writeAudit,
+  type Permission,
+  type Role,
+  type UserRecord,
+} from "./authz";
 
 /** 懒加载 StorageProvider —— 每次需要时从 settings 构造（settings 有 5s 缓存，成本低） */
 let _storagePromise: Promise<StorageProvider> | null = null;
@@ -58,11 +80,70 @@ function buildDirectUrl(token: string, fileName?: string | null, downloadName?: 
   return `/d/${token}/${encodeURIComponent(safe)}`;
 }
 
-async function requireAuth(req: Request, env: Env): Promise<Response | null> {
-  if (!(await verifySession(req, env))) {
-    return json({ error: "unauthorized" }, 401);
+/** 已解析的管理端身份上下文 */
+interface AdminCtx {
+  session: SessionPayload;
+  user: UserRecord | null; // null = 隐式超级管理员（env.admin 密钥登录）
+  actorId: string | null;
+  actorName: string;
+  role: Role;
+  permissions: Set<string>;
+}
+
+/**
+ * 管理端守卫：解析会话身份 → 校验有效 → 按路由推导所需权限位。
+ * 隐式超管（env.admin 密钥会话）拥有全部权限；member 不允许访问 /api/admin/*。
+ */
+async function authorize(
+  req: Request,
+  env: Env,
+  method: string,
+  path: string
+): Promise<{ ok: true; ctx: AdminCtx } | { ok: false; res: Response }> {
+  const session = await readSession(req, env);
+  if (!session) return { ok: false, res: json({ error: "unauthorized" }, 401) };
+
+  let ctx: AdminCtx;
+  if (!session.uid) {
+    // 隐式超级管理员
+    ctx = {
+      session,
+      user: null,
+      actorId: null,
+      actorName: "admin",
+      role: "super",
+      permissions: new Set<string>(PERMISSIONS),
+    };
+  } else {
+    const u = await getUserById(env, session.uid);
+    if (!isUserUsable(u)) return { ok: false, res: json({ error: "unauthorized" }, 401) };
+    if (u.session_version !== session.ver) return { ok: false, res: json({ error: "unauthorized" }, 401) };
+    if (u.role === "member") {
+      return { ok: false, res: json({ error: "forbidden", message: "Members must use /my" }, 403) };
+    }
+    ctx = {
+      session,
+      user: u,
+      actorId: u.id,
+      actorName: u.username,
+      role: u.role,
+      permissions: await effectivePermissions(env, u),
+    };
   }
-  return null;
+
+  const required = permissionForRoute(method, path);
+  if (required === null) return { ok: true, ctx };
+  if (required === SUPER_ONLY) {
+    if (ctx.role !== "super") return { ok: false, res: json({ error: "forbidden" }, 403) };
+    return { ok: true, ctx };
+  }
+  if (!ctx.permissions.has(required)) {
+    return {
+      ok: false,
+      res: json({ error: "forbidden", message: `Missing permission: ${required}` }, 403),
+    };
+  }
+  return { ok: true, ctx };
 }
 
 /** 写入登录安全日志 —— 登录/登出/失败/限流 全部走这里 */
@@ -107,7 +188,7 @@ export async function handleAdminApi(
     if (denied) return denied;
   }
 
-  // ── 登录（支持 2FA 两阶段） ──────────────────────────────
+  // ── 登录（用户名密码 或 管理密钥；支持 2FA 两阶段） ──────────────
   if (path === "/api/admin/login" && method === "POST") {
     const ip = clientIp(req);
     if (!rateLimitLogin(ip)) {
@@ -116,15 +197,61 @@ export async function handleAdminApi(
     }
     if (!env.admin)
       return json({ error: msg(req, "未设置 admin 密钥，请先执行 npx wrangler secret put admin", "admin is not set. Run: npx wrangler secret put admin") }, 500);
-    const body = await readJson<{ key: string; code?: string }>(req);
-    if (!body.key || !checkAdminKey(env, body.key)) {
-      ctx.waitUntil(writeLoginLog(env, req, "login", "fail", "invalid_key"));
-      return json({ error: msg(req, "管理密钥错误", "Invalid admin key") }, 401);
+
+    const body = await readJson<{ key?: string; username?: string; password?: string; code?: string; turnstile?: string }>(req);
+
+    // 人机验证（Turnstile）—— 开启且已配置时，任何管理端登录都必须先通过
+    {
+      const ts = await getSettings(env);
+      if (await isTurnstileRequiredForAuth(env, ts)) {
+        const pass = await verifyTurnstileToken(env, ts, String(body.turnstile ?? ""), ip);
+        if (!pass) {
+          ctx.waitUntil(writeLoginLog(env, req, "login", "fail", "turnstile_failed"));
+          return json(
+            { error: msg(req, "人机验证失败，请重试", "Human verification failed, please retry"), turnstile_required: true },
+            403
+          );
+        }
+      }
     }
 
-    // 密码正确 —— 检查是否需要 2FA
+    // ① 解析身份：用户名 + 密码（成员/管理员/超管） 或 管理密钥（隐式超管）
+    let identity: { uid: string; role: string; ver: number } | null = null;
+    let displayName = "admin";
+    if (body.username && body.password) {
+      const u = await getUserByUsername(env, body.username);
+      if (!u || !(await verifyUserPassword(body.password, u.password_hash, u.password_salt))) {
+        ctx.waitUntil(writeLoginLog(env, req, "login", "fail", "invalid_credentials"));
+        return json({ error: msg(req, "用户名或密码错误", "Invalid username or password") }, 401);
+      }
+      if (!isUserUsable(u)) {
+        ctx.waitUntil(writeLoginLog(env, req, "login", "fail", "account_disabled"));
+        return json({ error: msg(req, "账号已被禁用或删除", "Account disabled or removed") }, 403);
+      }
+      identity = { uid: u.id, role: u.role, ver: u.session_version };
+      displayName = u.display_name || u.username;
+    } else if (body.key && checkAdminKey(env, body.key)) {
+      identity = { uid: "", role: "super", ver: 0 };
+    } else {
+      ctx.waitUntil(writeLoginLog(env, req, "login", "fail", "invalid_credentials"));
+      return json({ error: msg(req, "登录失败", "Login failed") }, 401);
+    }
+
+    const idn = identity!;
+    const finish = async (extra: Record<string, unknown> = {}) => {
+      if (idn.uid) ctx.waitUntil(recordUserLogin(env, idn.uid, ip, req.headers.get("user-agent") ?? ""));
+      return new Response(JSON.stringify({ ok: true, role: idn.role, display_name: displayName, ...extra }), {
+        headers: {
+          "content-type": "application/json;charset=utf-8",
+          "set-cookie": await createSession(env, url.protocol === "https:", idn),
+          "cache-control": "no-store",
+        },
+      });
+    };
+
+    // ② 2FA —— 仅超级管理员需要（全局 TOTP）
     const s = await getSettings(env);
-    const needsTotp = s.totpEnabled && s.totpSecretCipher;
+    const needsTotp = idn.role === "super" && s.totpEnabled && !!s.totpSecretCipher;
 
     if (needsTotp) {
       // 没带 code → 要求 2FA
@@ -138,13 +265,7 @@ export async function handleAdminApi(
 
       if (totpOk) {
         ctx.waitUntil(writeLoginLog(env, req, "login", "success", "2fa_totp"));
-        return new Response(JSON.stringify({ ok: true }), {
-          headers: {
-            "content-type": "application/json;charset=utf-8",
-            "set-cookie": await createSession(env, url.protocol === "https:"),
-            "cache-control": "no-store",
-          },
-        });
+        return finish();
       }
 
       // TOTP 失败 → 尝试恢复码（两种来源：Cloudflare Secret 优先 → D1 恢复码）
@@ -160,13 +281,7 @@ export async function handleAdminApi(
           totp_recovery_hash: "",
         });
         ctx.waitUntil(writeLoginLog(env, req, "login", "success", "recovery_cloudflare"));
-        return new Response(JSON.stringify({ ok: true, recovery_used: true, totp_reset: true }), {
-          headers: {
-            "content-type": "application/json;charset=utf-8",
-            "set-cookie": await createSession(env, url.protocol === "https:"),
-            "cache-control": "no-store",
-          },
-        });
+        return finish({ recovery_used: true, totp_reset: true });
       }
 
       // 2) D1 存储的恢复码列表（消耗型，用一次删一次）
@@ -187,13 +302,7 @@ export async function handleAdminApi(
             totp_secret_cipher: "",
           });
           ctx.waitUntil(writeLoginLog(env, req, "login", "success", "recovery_code"));
-          return new Response(JSON.stringify({ ok: true, recovery_used: true, totp_reset: true }), {
-            headers: {
-              "content-type": "application/json;charset=utf-8",
-              "set-cookie": await createSession(env, url.protocol === "https:"),
-              "cache-control": "no-store",
-            },
-          });
+          return finish({ recovery_used: true, totp_reset: true });
         }
       }
 
@@ -204,18 +313,13 @@ export async function handleAdminApi(
 
     // 无需 2FA → 直接登录成功
     ctx.waitUntil(writeLoginLog(env, req, "login", "success"));
-    return new Response(JSON.stringify({ ok: true }), {
-      headers: {
-        "content-type": "application/json;charset=utf-8",
-        "set-cookie": await createSession(env, url.protocol === "https:"),
-        "cache-control": "no-store",
-      },
-    });
+    return finish();
   }
 
-  // ── 以下全部需要会话 ──────────────────────────────
-  const unauthorized = await requireAuth(req, env);
-  if (unauthorized) return unauthorized;
+  // ── 以下全部需要会话 + 按路由鉴权 ──────────────────────────────
+  const auth = await authorize(req, env, method, path);
+  if (!auth.ok) return auth.res;
+  const actx = auth.ctx;
 
   // 登出
   if (path === "/api/admin/logout" && method === "POST") {
@@ -229,7 +333,7 @@ export async function handleAdminApi(
     });
   }
 
-  // 会话检查
+  // 会话检查 —— 返回身份与权限（前端据此决定可见 Tab）
   if (path === "/api/admin/session" && method === "GET") {
     const s = await getSettings(env);
     return json({
@@ -239,6 +343,13 @@ export async function handleAdminApi(
       cloudflare_recovery: !!env.totp_recovery,
       recovery_remaining: s.totpRecoveryHash ? s.totpRecoveryHash.split(",").filter(Boolean).length : 0,
       ui_theme: s.uiTheme,
+      // 身份与权限
+      role: actx.role,
+      username: actx.actorName,
+      display_name: actx.user?.display_name || actx.actorName,
+      implicit_super: !actx.session.uid,
+      permissions: actx.role === "super" ? [...PERMISSIONS] : [...actx.permissions],
+      permission_catalog: PERMISSIONS.map((p) => ({ key: p, label: PERMISSION_LABELS[p] })),
     });
   }
 
@@ -325,6 +436,15 @@ export async function handleAdminApi(
       name = sanitizeName(rawName);
     }
     if (!req.body) return json({ error: msg(req, "请求体为空", "Empty request body") }, 400);
+    // ── 存储容量硬上限：已达 9.9 GB 直接拒绝，避免超额 ──
+    const usedBefore = await getStorageUsedBytes(env);
+    if (usedBefore >= STORAGE_LIMIT_BYTES) {
+      return json({ error: msg(req, "存储空间已满（已达 9.9 GB 上限），上传被拒绝", "Storage is full (9.9 GB limit reached). Upload rejected.") }, 413);
+    }
+    const declaredLen = parseInt(req.headers.get("content-length") || "", 10);
+    if (Number.isFinite(declaredLen) && usedBefore + declaredLen > STORAGE_LIMIT_BYTES) {
+      return json({ error: msg(req, "上传将超出 9.9 GB 存储上限，已拒绝", "Upload would exceed the 9.9 GB storage limit. Rejected.") }, 413);
+    }
     const id = randomId(14);
     const key = `files/${id}`;
     const mime = req.headers.get("content-type") || "application/octet-stream";
@@ -338,6 +458,16 @@ export async function handleAdminApi(
       resultSize = res.size;
     } catch (err: any) {
       return json({ error: msg(req, "存储写入失败", "Storage write failed"), detail: String(err?.message || err) }, 500);
+    }
+    // 大小兜底：流式 body 在部分后端拿不到大小，用 head 补一次
+    if (!resultSize) {
+      const head = await st.head(key).catch(() => null);
+      if (head) resultSize = head.size;
+    }
+    // ── 强制撤回：本次写入把总量顶过 9.9 GB 时，删除刚上传的对象 ──
+    if (usedBefore + resultSize > STORAGE_LIMIT_BYTES) {
+      await st.delete(key).catch(() => {});
+      return json({ error: msg(req, "上传将超出 9.9 GB 存储上限，已强制撤回", "Upload would exceed the 9.9 GB storage limit and was rolled back.") }, 413);
     }
     // ── Bug #4 修复：D1 写入失败时清理已写入的 storage 对象 ──
     try {
@@ -1003,6 +1133,7 @@ export async function handleAdminApi(
       cloudflare_turnstile_sitekey: !!env.turnstile_sitekey,
       cloudflare_turnstile_secret: !!env.turnstile_secret,
       turnstile_secret_configured: !!s.turnstileSecretCipher,
+      turnstile_login: s.turnstileOnLogin,
       // OAuth2 总开关 + providers 概要
       oauth_enabled: s.oauthEnabled,
       oauth_providers: providers.results.map((p) => ({
@@ -1039,6 +1170,8 @@ export async function handleAdminApi(
       analytics_engine_available: !!env.analytics,
       // UI 主题
       ui_theme: s.uiTheme,
+      // 成员自助注册开关
+      member_registration_enabled: s.memberRegistrationEnabled,
       // WebDAV
       webdav_enabled: s.webdavEnabled,
       webdav_username: s.webdavUsername,
@@ -1072,6 +1205,7 @@ export async function handleAdminApi(
     }
     const th = num(body.turnstile_threshold);
     if (th !== null) patch.turnstile_threshold = String(Math.floor(th));
+    if (typeof body.turnstile_login === "boolean") patch.turnstile_login = body.turnstile_login ? "1" : "0";
     if (typeof body.turnstile_sitekey_override === "string") {
       // 允许清空
       patch.turnstile_sitekey_override = body.turnstile_sitekey_override.trim();
@@ -1157,6 +1291,10 @@ export async function handleAdminApi(
         patch.ui_theme = t;
       }
     }
+
+    // 成员自助注册开关
+    if (typeof body.member_registration_enabled === "boolean")
+      patch.member_registration_enabled = body.member_registration_enabled ? "1" : "0";
 
     // ── WebDAV ──
     if (typeof body.webdav_enabled === "boolean") patch.webdav_enabled = body.webdav_enabled ? "1" : "0";
@@ -1805,6 +1943,393 @@ export async function handleAdminApi(
   if (path === "/api/admin/db/repair" && method === "POST") {
     const result = await repairDatabase(env);
     return json(result);
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // 成员管理（member.manage）
+  // ══════════════════════════════════════════════════════════════
+
+  // GET /api/admin/users —— 成员列表
+  if (path === "/api/admin/users" && method === "GET") {
+    const { results }: any = await env.db
+      .prepare(
+        `SELECT id, username, display_name, role, is_disabled, disabled_until, quota_bytes,
+                session_version, must_change_password, created_by, created_at, updated_at,
+                last_login_at, deleted_at
+         FROM users
+         ORDER BY CASE role WHEN 'super' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END, created_at DESC`
+      )
+      .all();
+    const now = Date.now();
+    return json({
+      users: (results ?? []).map((u: any) => ({
+        ...u,
+        is_super: u.role === "super",
+        disabled_effective: !!u.is_disabled || (u.disabled_until && u.disabled_until > now) ? true : false,
+        deleted: !!u.deleted_at,
+      })),
+    });
+  }
+
+  // POST /api/admin/users —— 新建成员
+  if (path === "/api/admin/users" && method === "POST") {
+    const body = await readJson<{
+      username?: string;
+      password?: string;
+      display_name?: string;
+      role?: string;
+      quota_gb?: number;
+    }>(req);
+    const role: Role = body.role === "admin" || body.role === "super" ? (body.role as Role) : "member";
+    if (role !== "member" && actx.role !== "super")
+      return json({ error: msg(req, "只有超级管理员可以创建管理员", "Only super admin can create admins") }, 403);
+    if (!body.username || !USERNAME_RE.test(body.username.trim()))
+      return json({ error: msg(req, "用户名需 3-32 位字母/数字/_ . -", "Username must be 3-32 of a-z0-9_.-") }, 400);
+    if (!body.password || body.password.length < 6)
+      return json({ error: msg(req, "密码至少 6 位", "Password must be at least 6 characters") }, 400);
+    if (await getUserByUsername(env, body.username))
+      return json({ error: msg(req, "用户名已存在", "Username already exists") }, 409);
+    const quotaBytes = body.quota_gb && body.quota_gb > 0 ? Math.round(body.quota_gb * 1024 ** 3) : null;
+    try {
+      const u = await createUser(env, {
+        username: body.username,
+        password: body.password,
+        role,
+        displayName: body.display_name,
+        quotaBytes,
+        createdBy: actx.actorId,
+      });
+      ctx.waitUntil(
+        writeAudit(env, {
+          actorId: actx.actorId,
+          actorName: actx.actorName,
+          action: "user.create",
+          target: u.username,
+          summary: `role=${u.role}`,
+          ip: clientIp(req),
+        })
+      );
+      return json({ ok: true, id: u.id, username: u.username, role: u.role });
+    } catch (e: any) {
+      return json({ error: String(e?.message ?? e) }, 400);
+    }
+  }
+
+  // /api/admin/users/:id —— 更新 / 删除
+  const userMatch = /^\/api\/admin\/users\/([^/]+)$/.exec(path);
+
+  // PATCH —— 资料 / 角色 / 配额 / 禁用 / 重置密码
+  if (userMatch && method === "PATCH") {
+    const targetId = userMatch[1];
+    const target = await getUserById(env, targetId);
+    if (!target || target.deleted_at) return json({ error: msg(req, "成员不存在", "User not found") }, 404);
+    const body = await readJson<{
+      display_name?: string;
+      role?: string;
+      quota_gb?: number | null;
+      disabled?: boolean;
+      password?: string;
+    }>(req);
+
+    const targetPrivileged = target.role === "admin" || target.role === "super";
+    const changingRole = typeof body.role === "string" && body.role !== target.role;
+    if ((targetPrivileged || changingRole || body.role === "admin" || body.role === "super") && actx.role !== "super")
+      return json({ error: msg(req, "只有超级管理员可以管理管理员/超级管理员", "Only super admin can manage admins") }, 403);
+    if (target.id === actx.actorId && (body.disabled === true || changingRole))
+      return json({ error: msg(req, "不能对自己降级或禁用", "You cannot demote or disable yourself") }, 400);
+    if (body.role !== undefined && !["super", "admin", "member"].includes(body.role))
+      return json({ error: "invalid_role" }, 400);
+    if (body.password !== undefined && body.password.length < 6)
+      return json({ error: msg(req, "密码至少 6 位", "Password must be at least 6 characters") }, 400);
+
+    const sets: string[] = [];
+    const vals: any[] = [];
+    const push = (col: string, v: any) => {
+      sets.push(`${col} = ?${vals.length + 1}`);
+      vals.push(v);
+    };
+    let bump = false;
+
+    if (body.display_name !== undefined) push("display_name", String(body.display_name).trim().slice(0, 40));
+    if (changingRole) { push("role", body.role); bump = true; }
+    if (body.quota_gb !== undefined) {
+      const qb = body.quota_gb && body.quota_gb > 0 ? Math.round(body.quota_gb * 1024 ** 3) : null;
+      push("quota_bytes", qb);
+    }
+    if (body.disabled !== undefined) { push("is_disabled", body.disabled ? 1 : 0); bump = true; }
+    if (body.password) {
+      const { hash, salt } = await hashUserPassword(body.password);
+      push("password_hash", hash);
+      push("password_salt", salt);
+      bump = true;
+    }
+    if (sets.length === 0) return json({ ok: true, noop: true });
+    push("updated_at", Date.now());
+    if (bump) sets.push("session_version = session_version + 1");
+    vals.push(targetId);
+    try {
+      await env.db.prepare(`UPDATE users SET ${sets.join(", ")} WHERE id = ?${vals.length}`).bind(...vals).run();
+    } catch (e: any) {
+      if (String(e?.message ?? e).includes("last_super"))
+        return json({ error: msg(req, "必须至少保留一个超级管理员", "At least one super admin must remain") }, 400);
+      throw e;
+    }
+    ctx.waitUntil(
+      writeAudit(env, {
+        actorId: actx.actorId,
+        actorName: actx.actorName,
+        action: "user.update",
+        target: target.username,
+        summary: Object.keys(body).join(","),
+        ip: clientIp(req),
+      })
+    );
+    return json({ ok: true });
+  }
+
+  // DELETE —— 软删除
+  if (userMatch && method === "DELETE") {
+    const targetId = userMatch[1];
+    const target = await getUserById(env, targetId);
+    if (!target || target.deleted_at) return json({ error: msg(req, "成员不存在", "User not found") }, 404);
+    if (target.id === actx.actorId)
+      return json({ error: msg(req, "不能删除自己", "You cannot delete yourself") }, 400);
+    if ((target.role === "admin" || target.role === "super") && actx.role !== "super")
+      return json({ error: msg(req, "只有超级管理员可以删除管理员", "Only super admin can delete admins") }, 403);
+    try {
+      await env.db
+        .prepare(
+          "UPDATE users SET deleted_at = ?1, is_disabled = 1, session_version = session_version + 1, updated_at = ?1 WHERE id = ?2"
+        )
+        .bind(Date.now(), targetId)
+        .run();
+    } catch (e: any) {
+      if (String(e?.message ?? e).includes("last_super"))
+        return json({ error: msg(req, "必须至少保留一个超级管理员", "At least one super admin must remain") }, 400);
+      throw e;
+    }
+    ctx.waitUntil(
+      writeAudit(env, {
+        actorId: actx.actorId,
+        actorName: actx.actorName,
+        action: "user.delete",
+        target: target.username,
+        ip: clientIp(req),
+      })
+    );
+    return json({ ok: true });
+  }
+
+  // POST /api/admin/users/:id/session-revoke —— 强制下线（使现有会话失效）
+  const userRevokeMatch = /^\/api\/admin\/users\/([^/]+)\/session-revoke$/.exec(path);
+  if (userRevokeMatch && method === "POST") {
+    const targetId = userRevokeMatch[1];
+    const target = await getUserById(env, targetId);
+    if (!target) return json({ error: msg(req, "成员不存在", "User not found") }, 404);
+    if ((target.role === "admin" || target.role === "super") && actx.role !== "super")
+      return json({ error: msg(req, "只有超级管理员可以管理管理员", "Only super admin can manage admins") }, 403);
+    await bumpSessionVersion(env, targetId);
+    ctx.waitUntil(
+      writeAudit(env, {
+        actorId: actx.actorId,
+        actorName: actx.actorName,
+        action: "user.session_revoke",
+        target: target.username,
+        ip: clientIp(req),
+      })
+    );
+    return json({ ok: true });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // 邀请码（member.manage）
+  // ══════════════════════════════════════════════════════════════
+
+  // GET /api/admin/invites
+  if (path === "/api/admin/invites" && method === "GET") {
+    const { results }: any = await env.db
+      .prepare(
+        `SELECT id, token, note, max_uses, used_count, default_role, created_by, created_at, expires_at, deleted_at
+         FROM registration_invites ORDER BY created_at DESC LIMIT 200`
+      )
+      .all();
+    return json({ invites: results ?? [] });
+  }
+
+  // POST /api/admin/invites —— 生成邀请码
+  if (path === "/api/admin/invites" && method === "POST") {
+    const body = await readJson<{
+      note?: string;
+      max_uses?: number;
+      expires_hours?: number;
+      default_role?: string;
+    }>(req);
+    const defaultRole: Role = body.default_role === "admin" ? "admin" : "member";
+    if (defaultRole === "admin" && actx.role !== "super")
+      return json({ error: msg(req, "只有超级管理员可以发放管理员邀请码", "Only super admin can issue admin invites") }, 403);
+    const maxUses = Math.max(1, Math.min(1000, Number(body.max_uses) || 1));
+    const expiresAt = body.expires_hours && body.expires_hours > 0 ? Date.now() + body.expires_hours * 3600_000 : null;
+    const id = randomId(14);
+    const token = randomId(24);
+    await env.db
+      .prepare(
+        `INSERT INTO registration_invites(id, token, note, max_uses, used_count, default_role, created_by, created_at, expires_at)
+         VALUES(?1, ?2, ?3, ?4, 0, ?5, ?6, ?7, ?8)`
+      )
+      .bind(id, token, (body.note ?? "").slice(0, 100), maxUses, defaultRole, actx.actorId, Date.now(), expiresAt)
+      .run();
+    ctx.waitUntil(
+      writeAudit(env, {
+        actorId: actx.actorId,
+        actorName: actx.actorName,
+        action: "invite.create",
+        target: token,
+        summary: `role=${defaultRole} max_uses=${maxUses}`,
+        ip: clientIp(req),
+      })
+    );
+    return json({ ok: true, id, token, url: `/my?invite=${token}`, default_role: defaultRole, max_uses: maxUses });
+  }
+
+  // DELETE /api/admin/invites/:id —— 作废
+  const inviteMatch = /^\/api\/admin\/invites\/([^/]+)$/.exec(path);
+  if (inviteMatch && method === "DELETE") {
+    await env.db
+      .prepare("UPDATE registration_invites SET deleted_at = ?1 WHERE id = ?2")
+      .bind(Date.now(), inviteMatch[1])
+      .run();
+    return json({ ok: true });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // 管理员权限位配置（仅超级管理员）
+  // ══════════════════════════════════════════════════════════════
+
+  if (path === "/api/admin/role-permissions" && method === "GET") {
+    const perms = await getAdminPermissions(env);
+    return json({
+      permissions: [...perms],
+      catalog: PERMISSIONS.map((p) => ({ key: p, label: PERMISSION_LABELS[p] })),
+    });
+  }
+
+  if (path === "/api/admin/role-permissions" && method === "PUT") {
+    if (actx.role !== "super")
+      return json({ error: msg(req, "只有超级管理员可以修改权限位", "Only super admin can edit permissions") }, 403);
+    const body = await readJson<{ permissions?: string[] }>(req);
+    const wanted = Array.isArray(body.permissions) ? (body.permissions as Permission[]) : [];
+    await setAdminPermissions(env, wanted);
+    ctx.waitUntil(
+      writeAudit(env, {
+        actorId: actx.actorId,
+        actorName: actx.actorName,
+        action: "role_permissions.set",
+        target: "admin",
+        summary: wanted.join(","),
+        ip: clientIp(req),
+      })
+    );
+    return json({ ok: true, permissions: [...(await getAdminPermissions(env))] });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // 申请审批（request.review）
+  // ══════════════════════════════════════════════════════════════
+
+  // GET /api/admin/requests?status=pending|approved|rejected|all
+  if (path === "/api/admin/requests" && method === "GET") {
+    const status = url.searchParams.get("status") || "pending";
+    const filter = status === "all" ? "" : "WHERE r.status = ?1";
+    const { results }: any = await env.db
+      .prepare(
+        `SELECT r.id, r.requester_id, r.file_id, r.title, r.description, r.status,
+                r.reviewer_id, r.review_reason, r.share_id, r.created_at, r.reviewed_at,
+                u.username AS requester_username, u.display_name AS requester_name,
+                f.name AS file_name, f.size AS file_size
+         FROM share_requests r
+         LEFT JOIN users u ON u.id = r.requester_id
+         LEFT JOIN files f ON f.id = r.file_id
+         ${filter}
+         ORDER BY r.created_at DESC LIMIT 200`
+      )
+      .bind(...(status === "all" ? [] : [status]))
+      .all();
+    return json({ requests: results ?? [], status });
+  }
+
+  // POST /api/admin/requests/:id/review —— 批准 / 驳回
+  const requestReviewMatch = /^\/api\/admin\/requests\/([^/]+)\/review$/.exec(path);
+  if (requestReviewMatch && method === "POST") {
+    const id = requestReviewMatch[1];
+    const body = await readJson<{ action?: string; reason?: string }>(req);
+    const action = body.action === "approve" ? "approve" : body.action === "reject" ? "reject" : "";
+    if (!action) return json({ error: "invalid_action" }, 400);
+    const r: any = await env.db.prepare("SELECT * FROM share_requests WHERE id = ?1").bind(id).first();
+    if (!r) return json({ error: "not_found" }, 404);
+    if (r.status !== "pending") return json({ error: msg(req, "该申请已处理", "Already reviewed") }, 400);
+    const now = Date.now();
+    const reason = (body.reason ?? "").slice(0, 200);
+    if (action === "reject") {
+      await env.db
+        .prepare(
+          "UPDATE share_requests SET status='rejected', reviewer_id=?1, review_reason=?2, reviewed_at=?3 WHERE id=?4"
+        )
+        .bind(actx.actorId, reason, now, id)
+        .run();
+    } else {
+      const file: any = await env.db.prepare("SELECT id FROM files WHERE id = ?1").bind(r.file_id).first();
+      if (!file) return json({ error: msg(req, "文件已不存在，无法发布", "File no longer exists") }, 400);
+      const shareId = randomId(10);
+      await env.db.batch([
+        env.db
+          .prepare(
+            `INSERT INTO shares(id, file_id, created_at, revoked, is_market, market_title, market_desc, created_by)
+             VALUES(?1, ?2, ?3, 0, 1, ?4, ?5, ?6)`
+          )
+          .bind(shareId, r.file_id, now, r.title || null, r.description || null, r.requester_id),
+        env.db
+          .prepare(
+            "UPDATE share_requests SET status='approved', reviewer_id=?1, review_reason=?2, share_id=?3, reviewed_at=?4 WHERE id=?5"
+          )
+          .bind(actx.actorId, reason, shareId, now, id),
+      ]);
+    }
+    ctx.waitUntil(
+      writeAudit(env, {
+        actorId: actx.actorId,
+        actorName: actx.actorName,
+        action: `request.${action}`,
+        target: id,
+        summary: reason,
+        ip: clientIp(req),
+      })
+    );
+    return json({ ok: true });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // 审计日志（log.read）
+  // ══════════════════════════════════════════════════════════════
+
+  if (path === "/api/admin/audit" && method === "GET") {
+    const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+    const perPage = Math.min(100, Math.max(10, Number(url.searchParams.get("per_page")) || 30));
+    const [total, rows] = await Promise.all([
+      env.db.prepare("SELECT COUNT(*) AS c FROM admin_audit_log").first<{ c: number }>(),
+      env.db
+        .prepare(
+          "SELECT id, actor_id, actor_name, action, target, summary, result, ip, created_at FROM admin_audit_log ORDER BY id DESC LIMIT ?1 OFFSET ?2"
+        )
+        .bind(perPage, (page - 1) * perPage)
+        .all(),
+    ]);
+    return json({
+      logs: rows.results ?? [],
+      total: total?.c ?? 0,
+      page,
+      per_page: perPage,
+      pages: Math.max(1, Math.ceil((total?.c ?? 0) / perPage)),
+    });
   }
 
   return json({ error: "not_found" }, 404);

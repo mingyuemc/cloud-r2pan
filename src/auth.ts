@@ -13,27 +13,88 @@ function getCookie(req: Request, name: string): string | null {
   return null;
 }
 
-/** 登录成功后签发会话 Cookie */
-export async function createSession(env: Env, secure = false): Promise<string> {
+/**
+ * 会话载荷 —— 携带身份，便于多用户鉴权。
+ *   uid  用户 id；空字符串 = 隐式超级管理员（用 env.admin 密钥登录）
+ *   role 固定三级角色
+ *   ver  session_version；改角色/禁用/改密后 +1，旧会话立即失效
+ */
+export interface SessionPayload {
+  uid: string;
+  role: string;
+  ver: number;
+  exp: number;
+}
+
+/** 签发会话 Cookie（带身份）。不传 identity 时按隐式超级管理员签发，兼容旧调用。 */
+export async function createSession(
+  env: Env,
+  secure = false,
+  identity?: { uid?: string; role?: string; ver?: number }
+): Promise<string> {
   const exp = Date.now() + SESSION_TTL_MS;
-  const sig = await hmacB64url(env.admin, String(exp));
-  const token = `${exp}.${sig}`;
+  const payload: SessionPayload = {
+    uid: identity?.uid ?? "",
+    role: identity?.role ?? "super",
+    ver: identity?.ver ?? 0,
+    exp,
+  };
+  const body = b64urlEncode(JSON.stringify(payload));
+  const sig = await hmacB64url(env.admin, body);
+  const token = `${body}.${sig}`;
   // Secure 标志仅在 HTTPS 下追加，兼容本地 http 调试
   const secureFlag = secure ? "; Secure" : "";
   return `${COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL_MS / 1000}${secureFlag}`;
 }
 
-/** 校验会话 Cookie，返回是否有效 */
-export async function verifySession(req: Request, env: Env): Promise<boolean> {
+/** 校验并解析会话 Cookie；无效/过期/签名不符返回 null。兼容旧的 `exp.sig` 格式。 */
+export async function readSession(req: Request, env: Env): Promise<SessionPayload | null> {
   const token = getCookie(req, COOKIE_NAME);
-  if (!token) return false;
+  if (!token) return null;
   const dot = token.indexOf(".");
-  if (dot < 0) return false;
-  const exp = token.slice(0, dot);
+  if (dot < 0) return null;
+  const head = token.slice(0, dot);
   const sig = token.slice(dot + 1);
-  if (!/^\d+$/.test(exp) || Number(exp) < Date.now()) return false;
-  const expect = await hmacB64url(env.admin, exp);
-  return safeEqual(sig, expect);
+  if (!head || !sig) return null;
+
+  // 旧格式：head 是纯数字过期时间戳 → 视为隐式超级管理员会话
+  if (/^\d+$/.test(head)) {
+    if (Number(head) < Date.now()) return null;
+    const expect = await hmacB64url(env.admin, head);
+    if (!safeEqual(sig, expect)) return null;
+    return { uid: "", role: "super", ver: 0, exp: Number(head) };
+  }
+
+  // 新格式：head 是 base64url(JSON payload)
+  const expect = await hmacB64url(env.admin, head);
+  if (!safeEqual(sig, expect)) return null;
+  let payload: SessionPayload;
+  try {
+    payload = JSON.parse(b64urlDecode(head));
+  } catch {
+    return null;
+  }
+  if (typeof payload?.exp !== "number" || payload.exp < Date.now()) return null;
+  return {
+    uid: typeof payload.uid === "string" ? payload.uid : "",
+    role: typeof payload.role === "string" ? payload.role : "super",
+    ver: typeof payload.ver === "number" ? payload.ver : 0,
+    exp: payload.exp,
+  };
+}
+
+/** 校验会话 Cookie，返回是否有效（向后兼容的布尔接口） */
+export async function verifySession(req: Request, env: Env): Promise<boolean> {
+  return (await readSession(req, env)) !== null;
+}
+
+function b64urlEncode(s: string): string {
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function b64urlDecode(s: string): string {
+  const pad = "=".repeat((4 - (s.length % 4)) % 4);
+  return atob(s.replace(/-/g, "+").replace(/_/g, "/") + pad);
 }
 
 /** 校验登录密钥（恒定时间比较，直接比字符串即可，无需 HMAC 包装） */

@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>我的空间 · cloud-r2pan</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;
+  color:#1a2332;background:radial-gradient(circle at 12% 8%, rgba(45,156,151,.20), transparent 32%), radial-gradient(circle at 88% 16%, rgba(90,143,203,.18), transparent 34%), radial-gradient(circle at 76% 88%, rgba(90,143,203,.13), transparent 30%), radial-gradient(circle at 28% 72%, rgba(45,156,151,.11), transparent 26%), linear-gradient(180deg, #eef5f9 0%, #e6eef4 100%);
+  min-height:100vh;position:relative;overflow-x:hidden;padding:24px 20px 80px;
+}
+.orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:.2;pointer-events:none;animation:drift 18s ease-in-out infinite alternate}
+.o1{width:46vmax;height:46vmax;background:#2d9c97;top:-18%;left:-14%}
+.o2{width:40vmax;height:40vmax;background:#5a8fcb;bottom:-20%;right:-10%;animation-delay:-6s}
+.o3{width:30vmax;height:30vmax;background:#7fb0d6;top:55%;left:8%;animation-delay:-12s;opacity:.16}
+@keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(6vw,-5vh) scale(1.12)}}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.hidden{display:none !important}
+
+.container{max-width:1040px;margin:0 auto;position:relative;z-index:1}
+
+/* ── 登录 / 注册卡片 ── */
+.auth-wrap{min-height:calc(100vh - 48px);display:flex;align-items:center;justify-content:center}
+.auth-card{
+  width:100%;max-width:400px;padding:40px 32px 32px;border-radius:28px;text-align:center;
+  background:linear-gradient(145deg, rgba(255,255,255,.78), rgba(255,255,255,.5));
+  backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);
+  border:1px solid rgba(26,35,50,.12);
+  box-shadow:0 22px 55px rgba(26,35,50,.18),inset 0 1px 0 rgba(255,255,255,.6);
+  animation:rise .6s cubic-bezier(.22,1.2,.36,1) both;
+}
+.auth-icon{width:72px;height:72px;margin:0 auto 18px;border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:36px;background:linear-gradient(145deg, rgba(255,255,255,.78), rgba(255,255,255,.5));border:1px solid rgba(26,35,50,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+.auth-card h2{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+.auth-card .sub{font-size:13px;color:rgba(26,35,50,.62);margin-bottom:24px}
+.field{margin-bottom:14px;text-align:left}
+.field label{display:block;font-size:12px;color:rgba(26,35,50,.62);margin-bottom:6px;padding-left:4px}
+input,select{
+  width:100%;padding:13px 16px;border-radius:14px;font-size:15px;color:#1a2332;outline:none;
+  background:rgba(255,255,255,.72);
+  border:1px solid rgba(26,35,50,.14);transition:border-color .2s,box-shadow .2s;
+}
+input::placeholder{color:rgba(26,35,50,.44)}
+input:focus,select:focus{border-color:rgba(45,156,151,.7);box-shadow:0 0 0 4px rgba(45,156,151,.22)}
+select option{background:#ffffff;color:#1a2332}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:13px 22px;border-radius:14px;border:none;cursor:pointer;font-size:15px;font-weight:600;
+  color:#fff;transition:transform .15s,box-shadow .2s,opacity .2s;
+  background:linear-gradient(180deg,#3fb3ad,#2d9c97);box-shadow:0 12px 28px rgba(45,156,151,.32);
+}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn.full{width:100%}
+.btn.ghost{background:linear-gradient(145deg, rgba(255,255,255,.78), rgba(255,255,255,.5));border:1px solid rgba(26,35,50,.15);box-shadow:none;font-weight:500;color:#1a2332}
+.btn.danger{background:linear-gradient(180deg,#e5534b,#d70015);box-shadow:0 12px 28px rgba(215,0,21,.32)}
+.btn.sm{padding:8px 14px;font-size:13px;border-radius:11px;font-weight:500}
+.auth-switch{margin-top:18px;font-size:13px;color:rgba(26,35,50,.62)}
+.auth-switch a{color:#2d9c97;cursor:pointer;text-decoration:none}
+.auth-msg{margin-top:14px;font-size:13px;min-height:18px}
+.auth-msg.err{color:#c01a2b}
+.auth-msg.ok{color:#1f7a75}
+.ts-box{display:flex;justify-content:center;margin:4px 0 14px}
+.ts-box:empty{display:none}
+
+/* ── 主体 ── */
+.topbar{display:flex;align-items:center;gap:14px;margin-bottom:22px;flex-wrap:wrap;animation:rise .5s cubic-bezier(.22,1.2,.36,1) both}
+.logo{width:44px;height:44px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(145deg, rgba(255,255,255,.78), rgba(255,255,255,.5));border:1px solid rgba(26,35,50,.17);box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+.topbar h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.topbar .sub{font-size:12px;color:rgba(26,35,50,.62);margin-top:2px}
+.spacer{flex:1}
+.chip{padding:8px 14px;border-radius:12px;font-size:12px;background:rgba(26,35,50,.09);border:1px solid rgba(26,35,50,.12);color:rgba(26,35,50,.72);white-space:nowrap}
+
+.quota{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:22px;padding:18px 20px;border-radius:20px;background:linear-gradient(145deg, rgba(255,255,255,.78), rgba(255,255,255,.5));backdrop-filter:blur(20px);border:1px solid rgba(26,35,50,.12);animation:rise .5s .05s cubic-bezier(.22,1.2,.36,1) both}
+.quota .q{flex:1;min-width:200px}
+.quota .q .lbl{font-size:12px;color:rgba(26,35,50,.62);margin-bottom:8px;display:flex;justify-content:space-between}
+.quota .q .val{font-size:13px;color:rgba(26,35,50,.72)}
+.bar{height:8px;border-radius:999px;background:rgba(26,35,50,.1);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#5a8fcb,#2d9c97);border-radius:999px;transition:width .3s}
+.bar.hot i{background:linear-gradient(90deg,#d68a14,#d70015)}
+
+.tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;animation:rise .5s .1s cubic-bezier(.22,1.2,.36,1) both}
+.tabs button{padding:10px 18px;border-radius:14px;font-size:14px;cursor:pointer;color:rgba(26,35,50,.62);border:1px solid rgba(26,35,50,.12);background:rgba(26,35,50,.05);transition:all .2s}
+.tabs button.active{color:#fff;background:linear-gradient(180deg,rgba(63,179,173,.9),rgba(45,156,151,.9));border-color:transparent;box-shadow:0 8px 20px rgba(45,156,151,.32)}
+
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.drop{
+  flex:1;min-width:240px;padding:22px;border-radius:18px;text-align:center;cursor:pointer;font-size:14px;color:rgba(26,35,50,.62);
+  border:2px dashed rgba(26,35,50,.2);background:rgba(26,35,50,.05);transition:all .2s;
+}
+.drop:hover,.drop.over{border-color:rgba(45,156,151,.8);background:rgba(45,156,151,.09);color:#1a2332}
+
+.list{display:flex;flex-direction:column;gap:12px}
+.row{
+  display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:18px;
+  background:linear-gradient(145deg, rgba(255,255,255,.78), rgba(255,255,255,.5));
+  backdrop-filter:blur(20px);border:1px solid rgba(26,35,50,.12);
+  box-shadow:0 12px 30px rgba(26,35,50,.12),inset 0 1px 0 rgba(255,255,255,.6);
+  animation:rise .4s cubic-bezier(.22,1.2,.36,1) both;
+}
+.row .ic{width:46px;height:46px;border-radius:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(145deg, rgba(255,255,255,.78), rgba(255,255,255,.5));border:1px solid rgba(26,35,50,.15)}
+.row .body{flex:1;min-width:0}
+.row .name{font-size:15px;font-weight:600;word-break:break-all;line-height:1.3}
+.row .meta{font-size:12px;color:rgba(26,35,50,.62);margin-top:5px;display:flex;gap:10px;flex-wrap:wrap}
+.row .acts{display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.badge{padding:3px 9px;border-radius:999px;font-size:11px;border:1px solid rgba(26,35,50,.12);background:rgba(26,35,50,.09)}
+.badge.ok{background:rgba(45,156,151,.14);border-color:rgba(45,156,151,.36);color:#1f7a75}
+.badge.warn{background:rgba(214,138,20,.16);border-color:rgba(214,138,20,.34);color:#a86a12}
+.badge.bad{background:rgba(215,0,21,.10);border-color:rgba(215,0,21,.28);color:#c01a2b}
+
+.empty{text-align:center;padding:64px 20px;color:rgba(26,35,50,.62);animation:rise .4s both}
+.empty .emoji{font-size:52px;margin-bottom:14px;opacity:.85}
+.empty h3{font-size:18px;font-weight:600;color:rgba(26,35,50,.72);margin-bottom:6px}
+
+.loading{display:flex;justify-content:center;padding:60px}
+.spinner{width:34px;height:34px;border:3px solid rgba(26,35,50,.14);border-top-color:#2d9c97;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── 上传进度 ── */
+.uprog{position:fixed;right:20px;bottom:20px;width:300px;max-width:calc(100vw - 40px);padding:16px;border-radius:18px;z-index:60;
+  background:rgba(255,255,255,.94);backdrop-filter:blur(20px);border:1px solid rgba(26,35,50,.14);box-shadow:0 22px 55px rgba(26,35,50,.18);animation:rise .3s both}
+.uprog .t{font-size:13px;word-break:break-all;margin-bottom:8px}
+.uprog .p{font-size:12px;color:rgba(26,35,50,.62)}
+
+/* ── 模态 ── */
+.mask{position:fixed;inset:0;background:rgba(20,30,40,.35);backdrop-filter:blur(6px);z-index:70;display:flex;align-items:center;justify-content:center;padding:20px;animation:rise .2s both}
+.modal{width:100%;max-width:420px;padding:28px 26px;border-radius:24px;background:rgba(255,255,255,.94);border:1px solid rgba(26,35,50,.14);box-shadow:0 22px 55px rgba(26,35,50,.18)}
+.modal h3{font-size:18px;font-weight:700;margin-bottom:18px}
+.modal .field{margin-bottom:14px}
+.modal .foot{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+
+/* ── 提示 ── */
+.toast{position:fixed;left:50%;top:24px;transform:translateX(-50%);z-index:90;padding:12px 22px;border-radius:14px;font-size:14px;max-width:calc(100vw - 40px);
+  background:rgba(255,255,255,.94);border:1px solid rgba(26,35,50,.14);box-shadow:0 12px 30px rgba(26,35,50,.12);animation:rise .25s both}
+.toast.err{border-color:rgba(215,0,21,.28)}
+.toast.ok{border-color:rgba(45,156,151,.36)}
+
+footer{text-align:center;font-size:12px;color:rgba(26,35,50,.44);margin-top:40px}
+footer a{color:rgba(45,156,151,.8);text-decoration:none}
+.lang-btn{margin-left:10px;padding:6px 14px;border-radius:11px;border:1px solid rgba(26,35,50,.15);background:rgba(26,35,50,.09);color:#1a2332;font-size:12px;cursor:pointer;transition:all .15s}
+.lang-btn:hover{background:rgba(26,35,50,.14)}
+/* ═══════════════════════════════════════════════════════════
+   Edgechat 视觉对齐（chat.xxkfj.kdns.fr）
+   玻璃面 rgba(252,252,252,.55)+blur(30px)saturate(125%)、窗口圆角 20px、
+   控件圆角 14px、蓝色主按钮、绿色强调、隐藏白玻璃描边。
+   ═══════════════════════════════════════════════════════════ */
+body{font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:#1f2521}
+.auth-card,.quota,.row,.uprog{
+  background:rgba(252,252,252,.55);
+  backdrop-filter:blur(30px) saturate(125%);-webkit-backdrop-filter:blur(30px) saturate(125%);
+  border-color:rgba(255,255,255,.55);
+  box-shadow:0 8px 24px rgba(0,0,0,.12),inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.auth-card{border-radius:20px;padding:36px 32px 30px}
+.quota{border-radius:20px}
+.row{border-radius:20px}
+.uprog{border-radius:20px}
+.auth-icon,.logo,.row .ic{
+  background:rgba(252,252,252,.55);border-color:rgba(255,255,255,.55);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.auth-icon{border-radius:16px}.logo{border-radius:14px}.row .ic{border-radius:12px}
+input,select{
+  border-radius:14px;border-color:rgba(88,107,124,.22);
+  background:linear-gradient(180deg,rgba(255,255,255,.56),rgba(236,243,249,.4)),rgba(228,236,243,.26);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.52),0 1px 2px rgba(88,107,124,.06);
+}
+input:focus,select:focus{border-color:rgba(45,156,151,.42);box-shadow:0 0 0 3px rgba(45,156,151,.12)}
+input::placeholder{color:rgba(31,37,33,.52)}
+.btn{
+  border-radius:14px;padding:12px 18px;font-size:14px;
+  background:linear-gradient(180deg,rgba(90,143,203,.92),rgba(69,121,186,.88));color:#fffaf2;
+  box-shadow:0 4px 16px rgba(90,143,203,.22);
+  transition:transform .28s cubic-bezier(.37,0,.63,1),box-shadow .28s cubic-bezier(.37,0,.63,1);
+}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(90,143,203,.3)}
+.btn.danger{background:linear-gradient(180deg,rgba(189,87,74,.9),rgba(161,60,50,.86));box-shadow:0 4px 16px rgba(173,75,64,.18)}
+.btn.ghost{
+  background:linear-gradient(180deg,rgba(255,255,255,.44),rgba(255,255,255,.16));
+  border:1px solid rgba(255,255,255,.5);color:#1f2521;
+  box-shadow:0 2px 10px rgba(88,107,124,.06);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+.btn.sm{border-radius:10px}
+.tabs button{border-radius:14px;border-color:rgba(88,107,124,.22);background:rgba(255,255,255,.42);color:rgba(31,37,33,.55)}
+.tabs button.active{background:rgba(23,133,124,.12);border-color:rgba(23,133,124,.32);color:#17857c;box-shadow:none;font-weight:600}
+.drop{border-radius:18px;border-color:rgba(88,107,124,.28);background:rgba(255,255,255,.32)}
+.drop:hover,.drop.over{border-color:rgba(23,133,124,.5);background:rgba(23,133,124,.07);color:#1f2521}
+.chip{border-radius:10px;background:rgba(255,255,255,.42);border-color:rgba(88,107,124,.22);color:rgba(31,37,33,.55)}
+.modal{
+  border-radius:20px;background:rgba(252,252,252,.72);
+  backdrop-filter:blur(30px) saturate(125%);-webkit-backdrop-filter:blur(30px) saturate(125%);
+  border-color:rgba(255,255,255,.6);box-shadow:0 12px 36px rgba(25,42,40,.14);
+}
+.toast{border-radius:14px;background:rgba(252,252,252,.72)}
+.bar i{background:linear-gradient(90deg,rgba(90,143,203,.9),#17857c)}
+</style>
+</head>
+<body>
+<div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+<div class="container">
+  <!-- 登录 / 注册 -->
+  <div id="auth" class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-icon">🗂️</div>
+      <h2 id="auth-title"></h2>
+      <div class="sub" id="auth-sub"></div>
+      <div class="field"><label id="lbl-user"></label><input id="in-user" autocomplete="username"></div>
+      <div class="field"><label id="lbl-pass"></label><input id="in-pass" type="password" autocomplete="current-password"></div>
+      <div class="field hidden" id="f-invite"><label id="lbl-invite"></label><input id="in-invite"></div>
+      <div class="ts-box" id="auth-ts"></div>
+      <button class="btn full" id="auth-btn"></button>
+      <div class="auth-switch"><span id="switch-hint"></span> <a id="switch-a"></a></div>
+      <div class="auth-msg" id="auth-msg"></div>
+    </div>
+  </div>
+
+  <!-- 主体 -->
+  <div id="app" class="hidden">
+    <div class="topbar">
+      <div class="logo">🗂️</div>
+      <div><h1 id="site-title">cloud-r2pan</h1><div class="sub" id="whoami"></div></div>
+      <div class="spacer"></div>
+      <span class="chip" id="role-chip"></span>
+      <button class="btn ghost sm" id="admin-entry" style="display:none"></button>
+      <button class="lang-btn" id="lang-toggle"></button>
+      <button class="btn ghost sm" id="logout"></button>
+    </div>
+
+    <div class="quota" id="quota"></div>
+
+    <div class="tabs">
+      <button data-tab="files" class="active" id="tab-files"></button>
+      <button data-tab="shares" id="tab-shares"></button>
+      <button data-tab="requests" id="tab-requests"></button>
+    </div>
+
+    <div id="view"></div>
+
+    <footer><span id="footer-text"></span></footer>
+  </div>
+</div>
+
+<script>
+/* ═══════════ i18n ═══════════ */
+const I18N = {
+  zh: {
+    pageTitle:'我的空间 · cloud-r2pan',
+    loginTitle:'登录我的空间', loginSub:'使用你的账号密码登录',
+    regTitle:'注册新账号', regSub:'填写邀请码即可创建你的独立空间',
+    lblUser:'用户名', lblPass:'密码', lblInvite:'邀请码',
+    loginBtn:'登录', regBtn:'注册并登录',
+    toReg:'还没有账号？', toRegA:'注册',
+    toLogin:'已有账号？', toLoginA:'登录',
+    switchTo:'EN',
+    adminConsole:'管理后台',
+    logout:'退出登录', roleMember:'成员', roleAdmin:'管理员', roleSuper:'超级管理员',
+    tabFiles:'📁 我的文件', tabShares:'🔗 我的分享', tabRequests:'📝 发布申请',
+    drop:'点击或拖拽文件到此处上传',
+    uploading:'上传中', uploadedOk:'上传成功', uploadFailed:'上传失败',
+    quotaSelf:'我的配额', quotaGlobal:'全站存储',
+    unlimited:'不限', used:'已用',
+    emptyFilesT:'空间还是空的', emptyFilesD:'点击上方区域上传你的第一个文件',
+    emptySharesT:'还没有分享', emptySharesD:'在「我的文件」里点分享即可创建链接',
+    emptyReqT:'没有发布申请', emptyReqD:'在文件里点「申请发布」提交给管理员审批',
+    actShare:'分享', actPublish:'申请发布', actDel:'删除', actCopy:'复制链接', actRevoke:'撤销',
+    newShare:'创建分享链接', fExpire:'有效期（小时，留空=永久）', fMax:'最大下载次数（留空=不限）', fPwd:'访问密码（留空=无密码）',
+    confirm:'确定', cancel:'取消', copied:'链接已复制',
+    pubTitle:'申请发布到市场', fMkTitle:'展示标题', fMkDesc:'展示描述',
+    submitted:'已提交，等待管理员审批',
+    delConfirm:'确定删除这个文件？相关分享也会一并删除。',
+    revokeConfirm:'确定撤销这个分享链接？',
+    stActive:'有效', stExpired:'已过期', stRevoked:'已撤销', stMaxed:'达上限',
+    stPending:'待审批', stApproved:'已通过', stRejected:'已驳回',
+    reason:'理由', dls:'下载', sz:'大小', at:'创建于',
+    pwBad:'用户名或密码错误', netBad:'网络错误，请稍后再试',
+    needInvite:'请填写邀请码',
+    tsRequired:'请先完成人机验证',
+    loading:'加载中…',
+    footer:'Powered by cloud-r2pan',
+  },
+  en: {
+    pageTitle:'My Space · cloud-r2pan',
+    loginTitle:'Sign in to your space', loginSub:'Use your username and password',
+    regTitle:'Create an account', regSub:'Enter an invite code to create your space',
+    lblUser:'Username', lblPass:'Password', lblInvite:'Invite code',
+    loginBtn:'Sign in', regBtn:'Register & sign in',
+    toReg:"No account yet?", toRegA:'Register',
+    toLogin:'Already have an account?', toLoginA:'Sign in',
+    switchTo:'中文',
+    adminConsole:'Admin console',
+    logout:'Sign out', roleMember:'Member', roleAdmin:'Admin', roleSuper:'Super Admin',
+    tabFiles:'📁 My Files', tabShares:'🔗 My Shares', tabRequests:'📝 Requests',
+    drop:'Click or drag files here to upload',
+    uploading:'Uploading', uploadedOk:'Uploaded', uploadFailed:'Upload failed',
+    quotaSelf:'My quota', quotaGlobal:'Site storage',
+    unlimited:'Unlimited', used:'used',
+    emptyFilesT:'Your space is empty', emptyFilesD:'Click above to upload your first file',
+    emptySharesT:'No shares yet', emptySharesD:'Go to "My Files" and click Share to create a link',
+    emptyReqT:'No publish requests', emptyReqD:'Click "Request publish" on a file to submit for review',
+    actShare:'Share', actPublish:'Request', actDel:'Delete', actCopy:'Copy link', actRevoke:'Revoke',
+    newShare:'Create share link', fExpire:'Expires (hours, blank = never)', fMax:'Max downloads (blank = unlimited)', fPwd:'Password (blank = none)',
+    confirm:'OK', cancel:'Cancel', copied:'Link copied',
+    pubTitle:'Request publish to marketplace', fMkTitle:'Title', fMkDesc:'Description',
+    submitted:'Submitted, awaiting review',
+    delConfirm:'Delete this file? Its shares will be removed too.',
+    revokeConfirm:'Revoke this share link?',
+    stActive:'Active', stExpired:'Expired', stRevoked:'Revoked', stMaxed:'Maxed',
+    stPending:'Pending', stApproved:'Approved', stRejected:'Rejected',
+    reason:'Reason', dls:'downloads', sz:'size', at:'created',
+    pwBad:'Invalid username or password', netBad:'Network error, please try later',
+    needInvite:'Please enter the invite code',
+    tsRequired:'Please complete the human verification first',
+    loading:'Loading…',
+    footer:'Powered by cloud-r2pan',
+  }
+};
+function detectLang(){
+  try{ const s=localStorage.getItem('cd_lang'); if(s==='zh'||s==='en') return s; }catch{}
+  const f=String((navigator.languages&&navigator.languages.length?navigator.languages[0]:navigator.language)||'').toLowerCase();
+  if(f.startsWith('zh')) return 'zh';
+  if(f) return 'en';
+  try{ const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''; if(/^Asia\/(Shanghai|Chongqing|Harbin|Urumqi|Kashgar|Hong_Kong|Macau|Taipei)$/.test(tz)) return 'zh'; }catch{}
+  return 'en';
+}
+let LANG=detectLang();
+const t=(k,p)=>{ let s=(I18N[LANG]&&I18N[LANG][k])??I18N.en[k]??k; if(p) for(const kk in p) s=s.split('{'+kk+'}').join(p[kk]); return s; };
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>{ const d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; };
+function fmtSize(b){ if(b==null||b===0) return '0 B'; const u=['B','KB','MB','GB','TB']; let i=0,n=Number(b); while(n>=1024&&i<u.length-1){n/=1024;i++;} return (i===0?n:n.toFixed(n<10?2:n<100?1:0))+' '+u[i]; }
+const EXT={zip:'📦',rar:'📦','7z':'📦',tar:'📦',gz:'📦',png:'🖼',jpg:'🖼',jpeg:'🖼',gif:'🖼',webp:'🖼',svg:'🖼',mp4:'🎬',mov:'🎬',mkv:'🎬',avi:'🎬',mp3:'🎵',flac:'🎵',wav:'🎵',pdf:'📄',doc:'📝',docx:'📝',xls:'📊',xlsx:'📊',ppt:'📊',pptx:'📊',txt:'📄',md:'📄',json:'📄',csv:'📊',exe:'⚙️',msi:'⚙️',dmg:'⚙️',apk:'📱',ipa:'📱'};
+const iconFor=n=>(EXT[(n.split('.').pop()||'').toLowerCase()]||'📎');
+function fmtDate(ts){ if(!ts) return ''; const d=new Date(ts); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+
+/* ═══════════ API ═══════════ */
+async function api(path,opts={}){
+  const r=await fetch(path,{headers:{'content-type':'application/json'},...opts});
+  let d={}; try{ d=await r.json(); }catch{}
+  if(!r.ok){ const e=new Error(d.error||('HTTP '+r.status)); e.status=r.status; throw e; }
+  return d;
+}
+function toast(text,kind){
+  const el=document.createElement('div');
+  el.className='toast '+(kind||'');
+  el.textContent=text;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2600);
+}
+
+/* ═══════════ Turnstile 人机验证 ═══════════
+ * 后端 /api/turnstile 下发登录/注册是否需要验证 + sitekey；
+ * token 一次性，每次提交后都要 reset 重新取。 */
+let TS={required:false,sitekey:null,widgetId:null,token:''};
+let tsApiLoading=null;
+function loadTurnstileApi(cb){
+  if(window.turnstile) return cb();
+  if(!tsApiLoading){
+    tsApiLoading=new Promise(res=>{
+      const s=document.createElement('script');
+      s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      s.async=true; s.defer=true;
+      s.onload=()=>res(); s.onerror=()=>res();
+      document.head.appendChild(s);
+    });
+  }
+  tsApiLoading.then(cb);
+}
+function renderTurnstile(){
+  TS.token=''; TS.widgetId=null;
+  const el=$('#auth-ts');
+  if(!el) return;
+  el.innerHTML='';
+  if(!TS.required||!TS.sitekey) return;
+  loadTurnstileApi(()=>{
+    if(!el||!window.turnstile) return;
+    try{
+      TS.widgetId=window.turnstile.render(el,{
+        sitekey:TS.sitekey,
+        callback:tok=>{TS.token=tok;},
+        'expired-callback':()=>{TS.token='';},
+        'error-callback':()=>{TS.token='';},
+      });
+    }catch(e){}
+  });
+}
+function resetTurnstile(){
+  TS.token='';
+  try{ if(TS.widgetId!=null&&window.turnstile) window.turnstile.reset(TS.widgetId); }catch(e){}
+}
+async function initAuthTurnstile(){
+  try{
+    const d=await api('/api/turnstile');
+    TS.required=!!d.login; TS.sitekey=d.sitekey||null;
+  }catch{ TS.required=false; TS.sitekey=null; }
+  renderTurnstile();
+}
+
+/* ═══════════ 登录 / 注册 ═══════════ */
+let MODE='login', SESSION=null;
+const inviteFromUrl=new URLSearchParams(location.search).get('invite')||'';
+
+function renderAuth(){
+  document.documentElement.lang=LANG==='zh'?'zh-CN':'en';
+  document.title=t('pageTitle');
+  $('#auth-title').textContent=t(MODE==='login'?'loginTitle':'regTitle');
+  $('#auth-sub').textContent=t(MODE==='login'?'loginSub':'regSub');
+  $('#lbl-user').textContent=t('lblUser');
+  $('#lbl-pass').textContent=t('lblPass');
+  $('#lbl-invite').textContent=t('lblInvite');
+  const regOff = !!(SESSION && SESSION.registration_enabled === false);
+  if(regOff && MODE==='register') MODE='login';
+  const sw=$('.auth-switch'); if(sw) sw.style.display = regOff ? 'none' : '';
+  $('#f-invite').classList.toggle('hidden',MODE!=='register');
+  $('#auth-btn').textContent=t(MODE==='login'?'loginBtn':'regBtn');
+  $('#switch-hint').textContent=t(MODE==='login'?'toReg':'toLogin');
+  $('#switch-a').textContent=t(MODE==='login'?'toRegA':'toLoginA');
+  $('#lang-toggle').textContent=t('switchTo');
+  $('#auth-msg').textContent=''; $('#auth-msg').className='auth-msg';
+  if(MODE==='register'&&inviteFromUrl&&!$('#in-invite').value) $('#in-invite').value=inviteFromUrl;
+  $('#auth').classList.remove('hidden');
+  $('#app').classList.add('hidden');
+}
+
+$('#switch-a').onclick=()=>{ MODE=MODE==='login'?'register':'login'; renderAuth(); };
+$('#lang-toggle').onclick=()=>{ try{localStorage.setItem('cd_lang',LANG==='zh'?'en':'zh');}catch{}; location.reload(); };
+$('#auth-btn').onclick=doAuth;
+$('#in-pass').addEventListener('keydown',e=>{ if(e.key==='Enter') doAuth(); });
+$('#in-invite').addEventListener('keydown',e=>{ if(e.key==='Enter') doAuth(); });
+
+async function doAuth(){
+  const username=$('#in-user').value.trim();
+  const password=$('#in-pass').value;
+  const invite=$('#in-invite').value.trim();
+  const m=$('#auth-msg');
+  if(!username||!password){ m.className='auth-msg err'; m.textContent=t('pwBad'); return; }
+  if(MODE==='register'&&!invite){ m.className='auth-msg err'; m.textContent=t('needInvite'); return; }
+  if(TS.required&&!TS.token){ m.className='auth-msg err'; m.textContent=t('tsRequired'); return; }
+  $('#auth-btn').disabled=true;
+  try{
+    if(MODE==='login') await api('/api/my/login',{method:'POST',body:JSON.stringify({username,password,turnstile:TS.token})});
+    else await api('/api/my/register',{method:'POST',body:JSON.stringify({username,password,invite,turnstile:TS.token})});
+    // 登录成功
+    try{ if(inviteFromUrl) history.replaceState(null,'',location.pathname); }catch{}
+    await boot();
+  }catch(e){
+    m.className='auth-msg err';
+    m.textContent=e.message||t('netBad');
+    resetTurnstile();
+  }finally{ $('#auth-btn').disabled=false; }
+}
+
+/* ═══════════ 主体 ═══════════ */
+let FILES=[], SHARES=[], REQUESTS=[], TAB='files';
+
+async function boot(){
+  try{
+    SESSION=await api('/api/my/session');
+  }catch{ SESSION={ok:false}; }
+  if(!SESSION.ok){ renderAuth(); return; }
+  $('#auth').classList.add('hidden');
+  $('#app').classList.remove('hidden');
+  renderShell();
+  await switchTab(TAB);
+}
+
+function renderShell(){
+  const roleKey=SESSION.role==='super'?'roleSuper':SESSION.role==='admin'?'roleAdmin':'roleMember';
+  $('#site-title').textContent='cloud-r2pan';
+  $('#whoami').textContent=SESSION.display_name||SESSION.username;
+  $('#role-chip').textContent=t(roleKey);
+  // 管理员（admin/super）可一键切到管理后台；成员不显示该入口
+  const isAdmin=SESSION.role==='admin'||SESSION.role==='super';
+  const ae=$('#admin-entry');
+  if(ae){ ae.style.display=isAdmin?'':'none'; ae.textContent=t('adminConsole'); ae.onclick=()=>{ location.href='/admin'; }; }
+  $('#logout').textContent=t('logout');
+  $('#lang-toggle').textContent=t('switchTo');
+  $('#tab-files').textContent=t('tabFiles');
+  $('#tab-shares').textContent=t('tabShares');
+  $('#tab-requests').textContent=t('tabRequests');
+  $('#footer-text').textContent=t('footer');
+  renderQuota();
+}
+
+function renderQuota(){
+  const q=SESSION.quota||{};
+  const selfQuota=q.quota;
+  const selfPct=selfQuota?Math.min(100,Math.round((q.used/selfQuota)*100)):0;
+  const gPct=q.global_limit?Math.min(100,Math.round((q.global_used/q.global_limit)*100)):0;
+  $('#quota').innerHTML=`
+    <div class="q">
+      <div class="lbl"><span>${esc(t('quotaSelf'))}</span><span>${fmtSize(q.used)} / ${selfQuota?fmtSize(selfQuota):esc(t('unlimited'))}</span></div>
+      <div class="bar ${selfPct>=85?'hot':''}"><i style="width:${selfQuota?selfPct:4}%"></i></div>
+    </div>
+    <div class="q">
+      <div class="lbl"><span>${esc(t('quotaGlobal'))}</span><span>${fmtSize(q.global_used)} / ${fmtSize(q.global_limit)}</span></div>
+      <div class="bar ${gPct>=85?'hot':''}"><i style="width:${gPct}%"></i></div>
+    </div>`;
+}
+
+$('#logout').onclick=async()=>{ try{ await api('/api/my/logout',{method:'POST'}); }catch{} SESSION={ok:false}; location.reload(); };
+
+document.querySelectorAll('.tabs button').forEach(b=>{
+  b.onclick=()=>switchTab(b.dataset.tab);
+});
+function switchTab(tab){
+  TAB=tab;
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  const v=$('#view');
+  v.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  ({files:loadFiles,shares:loadShares,requests:loadRequests})[tab]().catch(e=>{
+    v.innerHTML=`<div class="empty"><div class="emoji">⚠️</div><h3>${esc(e.message||t('netBad'))}</h3></div>`;
+  });
+}
+
+/* ── 我的文件 ── */
+async function loadFiles(){
+  const d=await api('/api/my/files');
+  FILES=d.files||[];
+  const v=$('#view');
+  v.innerHTML=`
+    <div class="toolbar">
+      <div class="drop" id="drop">${esc(t('drop'))}</div>
+      <input type="file" id="file-input" multiple class="hidden">
+    </div>
+    <div class="list" id="file-list"></div>`;
+  const drop=$('#drop'), inp=$('#file-input');
+  drop.onclick=()=>inp.click();
+  inp.onchange=()=>{ if(inp.files.length) uploadFiles([...inp.files]); inp.value=''; };
+  drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+  drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+  drop.addEventListener('drop',e=>{ e.preventDefault(); drop.classList.remove('over'); if(e.dataTransfer.files.length) uploadFiles([...e.dataTransfer.files]); });
+  renderFiles();
+}
+function renderFiles(){
+  const el=$('#file-list');
+  if(!FILES.length){ el.innerHTML=`<div class="empty"><div class="emoji">📭</div><h3>${esc(t('emptyFilesT'))}</h3><p>${esc(t('emptyFilesD'))}</p></div>`; return; }
+  el.innerHTML=FILES.map((f,i)=>`
+    <div class="row" style="animation-delay:${Math.min(i*35,300)}ms">
+      <div class="ic">${iconFor(f.name)}</div>
+      <div class="body">
+        <div class="name">${esc(f.name)}</div>
+        <div class="meta"><span>${fmtSize(f.size)}</span><span>${fmtDate(f.uploaded_at)}</span>${f.share_count?`<span class="badge">${f.share_count} 🔗</span>`:''}</div>
+      </div>
+      <div class="acts">
+        <button class="btn ghost sm" data-act="share" data-id="${f.id}">${esc(t('actShare'))}</button>
+        <button class="btn ghost sm" data-act="publish" data-id="${f.id}">${esc(t('actPublish'))}</button>
+        <button class="btn danger sm" data-act="del" data-id="${f.id}">${esc(t('actDel'))}</button>
+      </div>
+    </div>`).join('');
+  el.onclick=e=>{
+    const btn=e.target.closest('button[data-act]'); if(!btn) return;
+    const id=btn.dataset.id, act=btn.dataset.act;
+    if(act==='share') openShareModal(id);
+    else if(act==='publish') openPublishModal(id);
+    else if(act==='del') delFile(id);
+  };
+}
+
+/* 上传：XHR 带进度 */
+function uploadFiles(files){
+  let idx=0;
+  const box=document.createElement('div'); box.className='uprog';
+  box.innerHTML=`<div class="t" id="up-name"></div><div class="bar"><i id="up-bar" style="width:0%"></i></div><div class="p" id="up-pct"></div>`;
+  document.body.appendChild(box);
+  const next=()=>{
+    if(idx>=files.length){ box.remove(); refreshSessionAndFiles(); return; }
+    const f=files[idx];
+    $('#up-name').textContent=`${t('uploading')}: ${f.name}`;
+    $('#up-bar').style.width='0%';
+    const xhr=new XMLHttpRequest();
+    xhr.open('POST','/api/my/upload');
+    xhr.setRequestHeader('X-File-Name',encodeURIComponent(f.name));
+    xhr.setRequestHeader('Content-Type',f.type||'application/octet-stream');
+    xhr.upload.onprogress=e=>{ if(e.lengthComputable){ const p=Math.round(e.loaded/e.total*100); $('#up-bar').style.width=p+'%'; $('#up-pct').textContent=p+'%'; } };
+    xhr.onload=()=>{
+      if(xhr.status>=200&&xhr.status<300){ toast(t('uploadedOk')+': '+f.name,'ok'); idx++; next(); }
+      else{
+        let m=t('uploadFailed'); try{ m=JSON.parse(xhr.responseText).error||m; }catch{}
+        toast(m,'err'); box.remove(); refreshSessionAndFiles();
+      }
+    };
+    xhr.onerror=()=>{ toast(t('netBad'),'err'); box.remove(); refreshSessionAndFiles(); };
+    xhr.send(f);
+  };
+  next();
+}
+async function refreshSessionAndFiles(){
+  try{ SESSION=await api('/api/my/session'); renderQuota(); }catch{}
+  if(TAB==='files'){ try{AWAIT_loadFiles();}catch{} }
+}
+function AWAIT_loadFiles(){ return loadFiles(); }
+
+async function delFile(id){
+  if(!confirm(t('delConfirm'))) return;
+  try{ await api('/api/my/files/'+id,{method:'DELETE'}); toast(t('actDel')+' ✓','ok'); await refreshSessionAndFiles(); }
+  catch(e){ toast(e.message||t('netBad'),'err'); }
+}
+
+/* ── 模态 ── */
+function modal(title,fieldsHtml,onConfirm){
+  const mask=document.createElement('div'); mask.className='mask';
+  mask.innerHTML=`<div class="modal"><h3>${esc(title)}</h3><div id="m-body">${fieldsHtml}</div>
+    <div class="foot"><button class="btn ghost sm" id="m-cancel">${esc(t('cancel'))}</button><button class="btn sm" id="m-ok">${esc(t('confirm'))}</button></div></div>`;
+  document.body.appendChild(mask);
+  const close=()=>mask.remove();
+  mask.querySelector('#m-cancel').onclick=close;
+  mask.querySelector('#m-ok').onclick=async()=>{
+    const vals={};
+    mask.querySelectorAll('[data-name]').forEach(i=>vals[i.dataset.name]=i.value.trim());
+    const ok=await onConfirm(vals,close);
+    if(ok!==false) close();
+  };
+  mask.addEventListener('click',e=>{ if(e.target===mask) close(); });
+}
+
+function openShareModal(fileId){
+  modal(t('newShare'),
+    `<div class="field"><label>${esc(t('fExpire'))}</label><input data-name="expires_hours" type="number" min="1" placeholder=""></div>
+     <div class="field"><label>${esc(t('fMax'))}</label><input data-name="max_downloads" type="number" min="1" placeholder=""></div>
+     <div class="field"><label>${esc(t('fPwd'))}</label><input data-name="password" placeholder=""></div>`,
+    async v=>{
+      try{
+        const d=await api('/api/my/shares',{method:'POST',body:JSON.stringify({
+          file_id:fileId,
+          expires_hours:v.expires_hours?Number(v.expires_hours):null,
+          max_downloads:v.max_downloads?Number(v.max_downloads):null,
+          password:v.password||null,
+        })});
+        const url=location.origin+d.url;
+        try{ await navigator.clipboard.writeText(url); toast(t('copied')+': '+d.url,'ok'); }
+        catch{ toast(d.url,'ok'); }
+        refreshSessionAndFiles();
+      }catch(e){ toast(e.message||t('netBad'),'err'); return false; }
+    });
+}
+
+function openPublishModal(fileId){
+  modal(t('pubTitle'),
+    `<div class="field"><label>${esc(t('fMkTitle'))}</label><input data-name="title" placeholder=""></div>
+     <div class="field"><label>${esc(t('fMkDesc'))}</label><input data-name="description" placeholder=""></div>`,
+    async v=>{
+      try{
+        await api('/api/my/requests',{method:'POST',body:JSON.stringify({file_id:fileId,title:v.title,description:v.description})});
+        toast(t('submitted'),'ok');
+        if(TAB==='files') refreshSessionAndFiles();
+      }catch(e){ toast(e.message||t('netBad'),'err'); return false; }
+    });
+}
+
+/* ── 我的分享 ── */
+async function loadShares(){
+  const d=await api('/api/my/shares');
+  SHARES=d.shares||[];
+  const el=$('#view');
+  if(!SHARES.length){ el.innerHTML=`<div class="empty"><div class="emoji">🔗</div><h3>${esc(t('emptySharesT'))}</h3><p>${esc(t('emptySharesD'))}</p></div>`; return; }
+  const stMap={active:['stActive','ok'],expired:['stExpired','warn'],revoked:['stRevoked','bad'],maxed:['stMaxed','bad']};
+  el.innerHTML=`<div class="list">`+SHARES.map((s,i)=>{
+    const st=stMap[s.status]||['stActive','ok'];
+    return `<div class="row" style="animation-delay:${Math.min(i*35,300)}ms">
+      <div class="ic">${iconFor(s.file_name||'')}</div>
+      <div class="body">
+        <div class="name">${esc(s.file_name||'')}</div>
+        <div class="meta">
+          <span class="badge ${st[1]}">${esc(t(st[0]))}</span>
+          <span>${fmtSize(s.file_size)}</span>
+          <span>⬇️ ${s.download_count||0} ${esc(t('dls'))}</span>
+          ${s.has_password?'<span class="badge">🔒</span>':''}
+          <span>${esc(t('at'))} ${fmtDate(s.created_at)}</span>
+        </div>
+      </div>
+      <div class="acts">
+        <button class="btn ghost sm" data-act="copy" data-url="${esc(s.url)}">${esc(t('actCopy'))}</button>
+        <button class="btn danger sm" data-act="revoke" data-id="${s.id}">${esc(t('actRevoke'))}</button>
+      </div>
+    </div>`;
+  }).join('')+`</div>`;
+  el.onclick=async e=>{
+    const btn=e.target.closest('button[data-act]'); if(!btn) return;
+    if(btn.dataset.act==='copy'){
+      const url=location.origin+btn.dataset.url;
+      try{ await navigator.clipboard.writeText(url); toast(t('copied'),'ok'); }catch{ toast(btn.dataset.url,'ok'); }
+    } else if(btn.dataset.act==='revoke'){
+      if(!confirm(t('revokeConfirm'))) return;
+      try{ await api('/api/my/shares/'+btn.dataset.id,{method:'DELETE'}); toast(t('actRevoke')+' ✓','ok'); loadShares(); }
+      catch(err){ toast(err.message||t('netBad'),'err'); }
+    }
+  };
+}
+
+/* ── 我的申请 ── */
+async function loadRequests(){
+  const d=await api('/api/my/requests');
+  REQUESTS=d.requests||[];
+  const el=$('#view');
+  if(!REQUESTS.length){ el.innerHTML=`<div class="empty"><div class="emoji">📝</div><h3>${esc(t('emptyReqT'))}</h3><p>${esc(t('emptyReqD'))}</p></div>`; return; }
+  const stMap={pending:['stPending','warn'],approved:['stApproved','ok'],rejected:['stRejected','bad']};
+  el.innerHTML=`<div class="list">`+REQUESTS.map((r,i)=>{
+    const st=stMap[r.status]||['stPending','warn'];
+    return `<div class="row" style="animation-delay:${Math.min(i*35,300)}ms">
+      <div class="ic">${iconFor(r.file_name||'')}</div>
+      <div class="body">
+        <div class="name">${esc(r.title||r.file_name||'')}</div>
+        <div class="meta">
+          <span class="badge ${st[1]}">${esc(t(st[0]))}</span>
+          ${r.file_name?`<span>${esc(r.file_name)}</span>`:''}
+          <span>${esc(t('at'))} ${fmtDate(r.created_at)}</span>
+          ${r.review_reason?`<span>${esc(t('reason'))}: ${esc(r.review_reason)}</span>`:''}
+        </div>
+      </div>
+      ${r.status==='approved'&&r.share_id?`<div class="acts"><button class="btn ghost sm" data-url="/s/${esc(r.share_id)}" data-act="copy">${esc(t('actCopy'))}</button></div>`:''}
+    </div>`;
+  }).join('')+`</div>`;
+  el.onclick=async e=>{
+    const btn=e.target.closest('button[data-act="copy"]'); if(!btn) return;
+    const url=location.origin+btn.dataset.url;
+    try{ await navigator.clipboard.writeText(url); toast(t('copied'),'ok'); }catch{ toast(btn.dataset.url,'ok'); }
+  };
+}
+
+/* ═══════════ 启动 ═══════════ */
+renderAuth();
+initAuthTurnstile();
+boot();
+</script>
+</body>
+</html>

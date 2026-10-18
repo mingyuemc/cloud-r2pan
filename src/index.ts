@@ -1,8 +1,9 @@
 import type { Env } from "./types";
 import { ensureSchema } from "./db";
 import { handleAdminApi } from "./admin";
-import { handleDownload, handleDirectDownload, handleShareInfo, handleVerify } from "./public";
-import { serveAdminPage, serveSharePage, serveMarketPage, errorPage } from "./pages";
+import { handleMemberApi } from "./member";
+import { handleDownload, handleDirectDownload, handleShareInfo, handleVerify, handleTurnstileConfig } from "./public";
+import { serveAdminPage, serveSharePage, serveMarketPage, serveMyPage, serveLandingPage, errorPage } from "./pages";
 import {
   handleOAuthStart,
   handleOAuthCallback,
@@ -83,13 +84,13 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
   const url = new URL(req.url);
   const path = url.pathname;
 
-  // 首页：根据管理员设置决定去向（默认 → /admin；开启后 → /market）
+  // 首页：统一登录落地页（成员 + 管理员）。开启「市场作为首页」时仍跳 /market。
   if (path === "/") {
     await ensureSchema(env);
     const { getSettings } = await import("./settings");
     const s = await getSettings(env);
-    const target = s.homeRedirectMarket ? "/market" : "/admin";
-    return Response.redirect(new URL(target, url).toString(), 302);
+    if (s.homeRedirectMarket) return Response.redirect(new URL("/market", url).toString(), 302);
+    return serveLandingPage();
   }
 
   // 管理后台页面（/admin/apple 是隐藏的 Apple 玻璃风）
@@ -100,6 +101,16 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
   // 管理 API
   if (path.startsWith("/api/admin/")) {
     return handleAdminApi(req, env, ctx, path);
+  }
+
+  // ══════════════ 成员前台 /my ══════════════
+  // 成员独立空间页面
+  if (path === "/my" || path === "/my/") {
+    return serveMyPage();
+  }
+  // 成员 API（登录/注册/文件/分享/申请/配额）
+  if (path.startsWith("/api/my/")) {
+    return handleMemberApi(req, env, ctx, path);
   }
 
   // ══════════════ OAuth2 路由 ══════════════
@@ -227,6 +238,14 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
         url: `/s/${r.share_id}`,
       })),
     });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // 公开：Turnstile 渲染配置（登录 / 注册页面读取 sitekey 与开关）
+  // ══════════════════════════════════════════════════════════════
+  if (path === "/api/turnstile" && req.method === "GET") {
+    await ensureSchema(env);
+    return handleTurnstileConfig(req, env);
   }
 
   // 公开分享页 /s/:token[...]

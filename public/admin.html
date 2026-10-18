@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -66,57 +66,78 @@
 /* ═══════════════════════════════════════════════════════════
    简洁亮色
    ═══════════════════════════════════════════════════════════ */
+/* 令牌取值对齐 Edgechat 后台（frontend/src/styles/admin/tokens.css） */
 :root[data-theme="light"] {
-  --bg-page: #f5f5f7;
+  --bg-page: #f0f3f8;
   --orb-1: transparent; --orb-2: transparent; --orb-3: transparent;
   --orb-opacity: 0;
 
   --glass: #ffffff;
   --glass-strong: #ffffff;
-  --stroke: rgba(0,0,0,.07);
-  --stroke-strong: rgba(0,0,0,.14);
+  --stroke: #e8ebf0;
+  --stroke-strong: #d8dde4;
 
-  --text: #1d1d1f;
-  --text-2: rgba(0,0,0,.58);
-  --text-3: rgba(0,0,0,.35);
+  --text: #20232c;
+  --text-2: #626977;
+  --text-3: #9aa1ad;
 
-  --sf-soft: rgba(0,0,0,.04);
-  --sf: rgba(0,0,0,.055);
-  --sf-strong: rgba(0,0,0,.09);
-  --sf-input: rgba(0,0,0,.05);
-  --sf-input-focus: rgba(0,0,0,.08);
+  --sf-soft: #f9fafc;
+  --sf: #f3f4f6;
+  --sf-strong: #eef1f5;
+  --sf-input: #ffffff;
+  --sf-input-focus: #ffffff;
 
-  --shadow-soft: 0 1px 3px rgba(0,0,0,.08);
-  --shadow-topbar: 0 1px 2px rgba(0,0,0,.08);
+  --shadow-soft: 0 1px 2px rgba(13,23,49,.035);
+  --shadow-topbar: none;
   --shadow-inset-hi: none;
-  --shadow-glass: 0 1px 3px rgba(0,0,0,.08);
-  --shadow-topbar-box: 0 1px 2px rgba(0,0,0,.08);
-  --shadow-modal: 0 10px 40px rgba(0,0,0,.12);
-  --shadow-btn-primary: 0 2px 6px rgba(10,124,255,.25);
-  --shadow-btn-danger: 0 2px 6px rgba(255,69,58,.12);
-  --shadow-btn-plain: 0 1px 0 rgba(0,0,0,.08);
-  --shadow-btn-plain-hover: 0 1px 4px rgba(0,0,0,.08);
-  --shadow-spinner-track: rgba(0,0,0,.1);
-  --shadow-switch-thumb: 0 1px 3px rgba(0,0,0,.2);
-  --shadow-toast: 0 6px 20px rgba(0,0,0,.12);
+  --shadow-glass: 0 1px 2px rgba(13,23,49,.035);
+  --shadow-topbar-box: none;
+  --shadow-modal: 0 8px 24px rgba(13,23,49,.055);
+  --shadow-btn-primary: none;
+  --shadow-btn-danger: none;
+  --shadow-btn-plain: none;
+  --shadow-btn-plain-hover: 0 1px 2px rgba(13,23,49,.05);
+  --shadow-spinner-track: rgba(13,23,49,.12);
+  --shadow-switch-thumb: 0 1px 2px rgba(13,23,49,.25);
+  --shadow-toast: 0 8px 24px rgba(13,23,49,.055);
   --shadow-logo: none;
 
-  --scrollbar-thumb: rgba(0,0,0,.12);
-  --track-bg: rgba(0,0,0,.12);
-  --bar-bg: rgba(0,0,0,.1);
-  --tbl-divider: rgba(0,0,0,.06);
-  --tbl-hover: rgba(0,0,0,.04);
-  --tbl-row-border: rgba(0,0,0,.07);
-  --dashed-border: rgba(0,0,0,.22);
-  --dropzone-bg: rgba(0,0,0,.025);
-  --dropzone-hover-bg: rgba(0,0,0,.05);
-  --dashed-border-strong: rgba(0,0,0,.45);
-  --btn-hover-bg: #ffffff;
-  --btn-danger-bg: rgba(255,59,48,.08);
-  --btn-danger-bg-hover: rgba(255,59,48,.14);
-  --btn-danger-bg-active: rgba(255,59,48,.2);
-  --btn-danger-border: rgba(255,59,48,.22);
-  --btn-danger-color: #d70015;
+  --scrollbar-thumb: rgba(13,23,49,.16);
+  --track-bg: #e8ebf0;
+  --bar-bg: #e8ebf0;
+  --tbl-divider: #e8ebf0;
+  --tbl-hover: #f9fafc;
+  --tbl-row-border: #e8ebf0;
+  --dashed-border: #d8dde4;
+  --dropzone-bg: #f9fafc;
+  --dropzone-hover-bg: #f3f4f6;
+  --dashed-border-strong: #9aa1ad;
+  --btn-hover-bg: #f9fafc;
+  --btn-danger-bg: #fff2f0;
+  --btn-danger-bg-hover: #ffe9e6;
+  --btn-danger-bg-active: #ffdcd7;
+  --btn-danger-border: #e9b7b1;
+  --btn-danger-color: #b42318;
+
+  --radius: 10px;
+  --blue: #176bc0;
+
+  /* Edgechat 语义令牌 */
+  --ec-ink: #0d1731;
+  --ec-ink-hover: #18233f;
+  --ec-brand: #176bc0;
+  --ec-selected: #edf4fc;
+  --ec-green: #168c87;
+  --ec-green-hover: #0e726e;
+  --ec-green-bg: #f1fdfb;
+  --ec-success: #147d4d;
+  --ec-success-bg: #eefbf3;
+  --ec-warning: #946200;
+  --ec-warning-bg: #fff8e6;
+  --ec-danger: #b42318;
+  --ec-danger-bg: #fff2f0;
+  --ec-panel: 10px;
+  --ec-control: 6px;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -229,7 +250,7 @@
   --btn-danger-color: #ffb3ae;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
   min-height: 100vh; color: var(--text); position: relative; overflow-x: hidden;
@@ -356,7 +377,12 @@ body {
 
 /* ── 移动端折叠 ───────────────────────── */
 @media (max-width: 760px) {
-  .layout { flex-direction: column; }
+  .layout { flex-direction: column; align-items: stretch; }
+  /* 窄屏下 #view 是 flex 子项，align-items: flex-start 会让它按 min-content 撑宽
+     （概览里 14 列图表 + 表格 min-content ≈ 570px > 视口），导致整页横向溢出。
+     显式 width:100% 让它跟随容器宽度。 */
+  #view { width: 100%; }
+  .topbar { flex-wrap: wrap; row-gap: 8px; }
   .sidebar {
     position: static; width: 100%; max-height: none;
     flex-direction: row; flex-wrap: wrap; gap: 6px;
@@ -364,7 +390,13 @@ body {
   }
   .sb-main { padding: 7px 12px; font-size: 13px; }
   .sb-main .chev { display: none; }
+  /* 分组二级菜单：窄屏下点击分组后以整行展开，保证仍能进入子页面 */
   .sb-sub { display: none; }
+  .sb-sub.open {
+    display: flex; flex-basis: 100%; flex-direction: row; flex-wrap: wrap;
+    padding-left: 0; gap: 6px; max-height: none;
+  }
+  .sb-sub button { padding: 7px 12px; font-size: 13px; }
 }
 
 /* ── 统计卡片 ─────────────────────────── */
@@ -616,6 +648,152 @@ body {
 .spin { width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--shadow-spinner-track); border-top-color: var(--text); animation: spin .8s linear infinite; margin: 30px auto; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ═══════════════════════════════════════════════════════════
+   Edgechat 工作台皮肤（仅亮色主题）
+   对齐 frontend/src/styles/admin/*：浅灰蓝画布、白色细边面板、
+   10px 面板圆角 / 6px 控件圆角、深蓝主按钮 + 绿色强调、无装饰动画。
+   ═══════════════════════════════════════════════════════════ */
+:root[data-theme="light"] .orb { display: none; }
+:root[data-theme="light"] ::selection { background: rgba(23,107,192,.2); }
+:root[data-theme="light"] body {
+  font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+:root[data-theme="light"] .wrap { max-width: 1440px; padding-top: 0; }
+:root[data-theme="light"] .layout { gap: 24px; }
+
+/* ── 顶栏：64px 白底 + 底部细分割线 ───── */
+:root[data-theme="light"] .topbar {
+  top: 0; min-height: 64px; padding: 0 20px; margin-bottom: 24px;
+  border: 0; border-bottom: 1px solid var(--stroke); border-radius: 0;
+  box-shadow: none; background: #ffffff;
+}
+:root[data-theme="light"] .logo { background: var(--ec-brand); }
+:root[data-theme="light"] .topbar h1 { font-size: 16px; }
+:root[data-theme="light"] .traffic-pill { border-radius: var(--ec-control); background: var(--sf-soft); }
+:root[data-theme="light"] .traffic-pill:hover { background: var(--sf); }
+:root[data-theme="light"] .traffic-pill.danger { color: var(--ec-danger); }
+:root[data-theme="light"] .traffic-pill .bar i { background: var(--ec-green); }
+:root[data-theme="light"] .traffic-pill.danger .bar i { background: #d97706; }
+
+/* ── 侧栏：256px 白色面板 ─────────────── */
+:root[data-theme="light"] .sidebar {
+  width: 256px; padding: 10px 8px; border-radius: var(--ec-panel);
+  top: 80px; max-height: calc(100vh - 100px);
+}
+:root[data-theme="light"] .sb-main { border-radius: var(--ec-control); color: var(--text-2); }
+:root[data-theme="light"] .sb-main:hover { background: var(--sf); color: var(--text); }
+:root[data-theme="light"] .sb-main.open { background: var(--sf); color: var(--text); box-shadow: none; }
+:root[data-theme="light"] .sb-sub button { border-radius: var(--ec-control); }
+:root[data-theme="light"] .sb-sub button.active {
+  background: var(--ec-selected); color: var(--ec-brand); box-shadow: none;
+}
+
+/* ── 面板 ─────────────────────────────── */
+:root[data-theme="light"] .glass,
+:root[data-theme="light"] .stat-card,
+:root[data-theme="light"] .section,
+:root[data-theme="light"] .group {
+  border-radius: var(--ec-panel); border: 1px solid var(--stroke);
+  box-shadow: var(--shadow-glass); background: #ffffff;
+}
+:root[data-theme="light"] .section { border: 0; background: transparent; box-shadow: none; }
+:root[data-theme="light"] .section-title h2 { font-size: 16px; font-weight: 700; }
+:root[data-theme="light"] .stat-card { animation: none; }
+:root[data-theme="light"] .stat-card .value { font-size: 26px; font-weight: 700; }
+:root[data-theme="light"] .upload-item { border-radius: var(--ec-panel); }
+:root[data-theme="light"] .dropzone { border-radius: var(--ec-panel); }
+:root[data-theme="light"] .ficon { border-radius: 8px; background: var(--sf-soft); }
+:root[data-theme="light"] .banner {
+  border-radius: var(--ec-panel); background: var(--ec-warning-bg); border-color: #f0dcae;
+}
+:root[data-theme="light"] .banner .t { color: var(--ec-warning); }
+:root[data-theme="light"] .banner .d { color: #a9802c; }
+
+/* ── 按钮 ─────────────────────────────── */
+:root[data-theme="light"] .btn {
+  border-radius: var(--ec-control); padding: 9px 15px; font-size: 13.5px;
+  background: #ffffff; border: 1px solid var(--stroke-strong); color: var(--text);
+  backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: var(--shadow-btn-plain);
+}
+:root[data-theme="light"] .btn:hover {
+  background: var(--sf-soft); transform: none; box-shadow: var(--shadow-btn-plain-hover);
+}
+:root[data-theme="light"] .btn:active { transform: none; }
+:root[data-theme="light"] .btn.primary {
+  background: var(--ec-ink); border-color: var(--ec-ink); color: #ffffff; box-shadow: none;
+}
+:root[data-theme="light"] .btn.primary:hover { background: var(--ec-ink-hover); filter: none; transform: none; }
+:root[data-theme="light"] .btn.primary:active { transform: none; }
+:root[data-theme="light"] .btn.danger {
+  background: var(--ec-danger-bg); border-color: var(--btn-danger-border); color: var(--ec-danger);
+}
+:root[data-theme="light"] .btn.danger:hover { background: var(--btn-danger-bg-hover); box-shadow: none; }
+:root[data-theme="light"] .btn.sm { border-radius: var(--ec-control); }
+
+/* ── 表单控件：6px 圆角 + 绿色聚焦环 ──── */
+:root[data-theme="light"] .field input,
+:root[data-theme="light"] .field select,
+:root[data-theme="light"] .group .row input[type=number],
+:root[data-theme="light"] .group .row input[type=text],
+:root[data-theme="light"] .link-box input {
+  border-radius: var(--ec-control); padding: 9px 12px; font-size: 14px;
+  background: #ffffff; border: 1px solid var(--stroke-strong);
+}
+:root[data-theme="light"] .field input:focus,
+:root[data-theme="light"] .field select:focus,
+:root[data-theme="light"] .group .row input[type=number]:focus,
+:root[data-theme="light"] .group .row input[type=text]:focus {
+  border-color: var(--ec-green); box-shadow: 0 0 0 3px rgba(22,140,135,.14);
+}
+:root[data-theme="light"] .switch input:checked + .track { background: var(--ec-green); }
+
+/* ── 表格 ─────────────────────────────── */
+:root[data-theme="light"] .tbl { font-size: 13px; }
+:root[data-theme="light"] .tbl th {
+  font-size: 12px; font-weight: 600; color: var(--text-3); border-bottom: 1px solid var(--stroke);
+}
+:root[data-theme="light"] .tbl td { border-bottom: 1px solid var(--stroke); }
+:root[data-theme="light"] .tag { border-radius: var(--ec-control); }
+:root[data-theme="light"] .tag.active { background: var(--ec-success-bg); color: var(--ec-success); }
+:root[data-theme="light"] .tag.expired,
+:root[data-theme="light"] .tag.maxed { background: var(--ec-warning-bg); color: var(--ec-warning); }
+:root[data-theme="light"] .tag.revoked { background: var(--ec-danger-bg); color: var(--ec-danger); }
+
+/* ── 图表 / 进度 ──────────────────────── */
+:root[data-theme="light"] .chart .bar { background: linear-gradient(180deg, #5b9bd8, #176bc0); }
+:root[data-theme="light"] .chart .bar:hover { background: linear-gradient(180deg, #4a8ecb, #125ea9); }
+:root[data-theme="light"] .progress i,
+:root[data-theme="light"] .upload-item .prog i { background: var(--ec-green); }
+:root[data-theme="light"] .progress.hot i { background: #d97706; }
+
+/* ── 弹层 / 提示 ──────────────────────── */
+:root[data-theme="light"] .modal-mask { background: rgba(13,23,49,.3); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+:root[data-theme="light"] .modal { border-radius: 12px; animation: fadeIn .2s both; }
+:root[data-theme="light"] .modal .actions .btn { border-radius: var(--ec-control); padding: 11px; font-size: 14px; }
+:root[data-theme="light"] .toast { border-radius: var(--ec-control); animation: fadeIn .2s both; }
+:root[data-theme="light"] .toast.ok { border-color: #b7e4cd; }
+:root[data-theme="light"] .toast.err { border-color: #e9b7b1; }
+
+/* ── 登录页 ───────────────────────────── */
+:root[data-theme="light"] .login-card {
+  border-radius: 12px; padding: 36px 32px 30px; animation: none;
+  box-shadow: 0 8px 24px rgba(13,23,49,.06);
+}
+:root[data-theme="light"] .login-card .logo { border-radius: 10px; }
+:root[data-theme="light"] .login-card h1 { font-size: 22px; font-weight: 700; }
+:root[data-theme="light"] .login-card input {
+  border-radius: var(--ec-control); padding: 12px 14px; font-size: 15px; text-align: left;
+  background: #ffffff; border: 1px solid var(--stroke-strong);
+}
+:root[data-theme="light"] .login-card input:focus {
+  border-color: var(--ec-green); box-shadow: 0 0 0 3px rgba(22,140,135,.14);
+}
+:root[data-theme="light"] .login-card .btn {
+  border-radius: var(--ec-control); padding: 12px; font-size: 14px;
+}
+:root[data-theme="light"] .login-card .err { color: var(--ec-danger); }
+
 .actions-cell { display: flex; gap: 6px; }
 @media (max-width: 720px) {
   .tbl th:nth-child(n+5), .tbl td:nth-child(n+5) { display: none; }
@@ -637,8 +815,9 @@ const I18N = {
     login: '登录', logout: '退出', cancel: '取消', confirm: '确定', copy: '复制', close: '关闭',
     copied: '已复制到剪贴板', save: '保存设置', saved: '设置已保存', forever: '永久',
     switchTo: 'EN', topbarSub: '管理后台 · Cloudflare Workers + R2',
+    mySpace: '我的空间', mySpaceTip: '前往我的空间上传/管理文件',
     // 登录
-    loginSubtitle: '管理后台 · 请输入管理密钥登录', keyPlaceholder: '管理密钥 (admin)',
+    loginSubtitle: '管理后台 · 输入用户名密码或管理密钥登录', keyPlaceholder: '管理密钥 (admin)', userPlaceholder: '用户名（成员 / 管理员，可留空）',
     // 标签
     tabOverview: '概览', tabFiles: '文件', tabStorage: '存储浏览', tabShares: '分享', tabDirect: '直链', tabLogs: '记录', tabBans: '封禁', tabGlobal: '全球分布', tabSecurity: '安全', tabSettings: '设置', tabWebDAV: 'WebDAV',
     navContent: '内容管理', navAnalytics: '运营分析', navSecurity: '安全中心', navSystem: '系统设置',
@@ -806,6 +985,9 @@ const I18N = {
     tsSitekeyOverrideHelp: '如果你没在 Cloudflare Secret 里配 turnstile_sitekey，可在此填入',
     tsSecretOverride: 'Turnstile Secret',
     tsSecretPlaceholder: '填入 Secret Key（与 SiteKey 同一面板获取）',
+    tsLoginToggle: '登录 / 注册也需要人机验证',
+    tsLoginToggleHelp: '开启后，/admin 与 /my 的登录、成员注册都必须先通过人机验证（需已配置 SiteKey + Secret）',
+    tsRequired: '请先完成人机验证',
     tsSecretKeep: '留空不改动',
     tsSecretInCloudflare: '已在 Cloudflare Secret 中（优先使用）',
     tsSecretInDatabase: '已在数据库中加密存储',
@@ -990,6 +1172,42 @@ const I18N = {
     codesQueryResult: '剩余 {remaining} / 总 {total}',
     codesQueryResultInfinite: '剩余 ∞ (无限额度)',
     codesPerBatch: '批次 {id}',
+    // ═══════ 成员与管理员 ═══════
+    tabMembers: '成员', tabRequests: '申请审批', tabAudit: '审计日志', tabPerms: '权限位', navMembers: '成员管理',
+    memTitle: '成员列表', memSubtitle: '管理所有账号、角色、配额与登录状态',
+    memNew: '新建成员', memUsername: '用户名', memDisplay: '显示名', memPassword: '密码', memRole: '角色', memQuota: '配额 (GB)',
+    memQuotaPh: '留空 = 不限', memCreate: '创建', memCreateOk: '成员已创建',
+    memRoleMember: '成员', memRoleAdmin: '管理员', memRoleSuper: '超级管理员',
+    memStatus: '状态', memActive: '正常', memDisabled: '已禁用', memDeleted: '已删除', memUnlimited: '不限',
+    memCreatedAt: '创建时间', memLastLogin: '最近登录', memQuotaCol: '配额', memActions: '操作',
+    memEdit: '编辑', memDelete: '删除', memRevoke: '强制下线', memDisableBtn: '禁用', memEnableBtn: '启用', memResetPwd: '重置密码',
+    memNoUsers: '暂无成员', memUpdated: '已更新', memDeletedOk: '成员已删除', memRevokeOk: '该成员的所有会话已失效',
+    memConfirmDelete: '确定删除成员「{name}」？其登录会话将立即失效。', memOnlySuper: '仅超级管理员可管理管理员/超级管理员',
+    memNewPwd: '新密码', memPwdPh: '至少 6 位',
+    memNewTitle: '新建成员', memNewSub: '创建一个新账号；配额留空表示仅受全站 9.9 GB 上限约束',
+    memEditTitle: '编辑成员', memEditSub: '修改资料、角色、配额，或重置密码',
+    memSave: '保存', memUsernamePh: '3-32 位字母/数字/_ . -',
+    memConfirmRevoke: '确定让该成员的所有会话立即失效？',
+    memInviteHint: '把邀请链接发给对方，对方可在 /my 自助注册',
+    memRoleHint: '管理员可访问后台（按权限位），成员仅能使用 /my 独立空间',
+    // 邀请码
+    invTitle: '邀请码', invNew: '生成邀请码', invNote: '备注', invNotePh: '可选', invMaxUses: '可用次数', invExpires: '有效期(小时)',
+    invDefaultRole: '默认角色', invUsed: '已用', invCreatedAt: '创建时间', invStatus: '状态',
+    invValid: '有效', invRevoked: '已作废', invExhausted: '已用尽', invExpired: '已过期',
+    invCopy: '复制链接', invRevoke: '作废', invNoInvites: '暂无邀请码', invCreated: '邀请码已生成', invConfirmRevoke: '确定作废这个邀请码？', invForever: '永久',
+    regEnabled: '开放成员注册', regEnabledD: '开启后，持有效邀请码的人可在 /my 自助注册账号',
+    // 申请审批
+    reqTitle: '市场发布申请', reqSubtitle: '成员提交的发布申请，批准后自动创建市场分享',
+    reqPending: '待审批', reqApproved: '已通过', reqRejected: '已驳回', reqAll: '全部',
+    reqRequester: '申请人', reqFile: '文件', reqReqTitle: '标题', reqReqDesc: '描述', reqTime: '提交时间', reqReviewedAt: '处理时间',
+    reqApprove: '批准', reqReject: '驳回', reqReasonPh: '理由（可填）', reqApproveConfirm: '批准后将把该文件发布到下载市场，确定？', reqRejectConfirm: '确定驳回这个申请？',
+    reqDone: '已处理', reqNoRequests: '暂无申请',
+    // 审计
+    auditTitle: '操作审计', auditSubtitle: '记录管理员与成员的敏感操作，自动保留约 90 天',
+    auditTime: '时间', auditActor: '操作人', auditAction: '动作', auditTarget: '对象', auditSummary: '摘要', auditIP: 'IP', auditNoLogs: '暂无日志',
+    // 权限位
+    permTitle: '管理员权限位', permSubtitle: '配置 admin 角色可执行的操作（super 始终拥有全部权限）',
+    permSaved: '权限位已保存', permOnlySuper: '仅超级管理员可修改权限位',
   },
   en: {
     docTitle: '{site} · Admin Console',
@@ -997,8 +1215,9 @@ const I18N = {
     login: 'Log in', logout: 'Log out', cancel: 'Cancel', confirm: 'Confirm', copy: 'Copy', close: 'Close',
     copied: 'Copied to clipboard', save: 'Save Settings', saved: 'Settings saved', forever: 'Forever',
     switchTo: '中文', topbarSub: 'Admin console · Cloudflare Workers + R2',
+    mySpace: 'My Space', mySpaceTip: 'Go to My Space to upload / manage files',
     // 登录
-    loginSubtitle: 'Admin console · Enter your admin key to continue', keyPlaceholder: 'Admin key (admin)',
+    loginSubtitle: 'Admin console · Sign in with your account or admin key', keyPlaceholder: 'Admin key (admin)', userPlaceholder: 'Username (member / admin, optional)',
     // 标签
     tabOverview: 'Overview', tabFiles: 'Files', tabStorage: 'Storage', tabShares: 'Shares', tabDirect: 'Direct', tabLogs: 'Logs', tabBans: 'Bans', tabGlobal: 'Global', tabSecurity: 'Security', tabSettings: 'Settings', tabWebDAV: 'WebDAV',
     navContent: 'Content', navAnalytics: 'Analytics', navSecurity: 'Security', navSystem: 'System',
@@ -1166,6 +1385,9 @@ const I18N = {
     tsSitekeyOverrideHelp: 'Only needed if you did NOT set turnstile_sitekey as a Cloudflare Secret',
     tsSecretOverride: 'Turnstile Secret',
     tsSecretPlaceholder: 'Enter Secret Key (same dashboard as SiteKey)',
+    tsLoginToggle: 'Also require on sign-in / register',
+    tsLoginToggleHelp: 'When on, admin & member sign-in and member registration require human verification (needs SiteKey + Secret).',
+    tsRequired: 'Please complete the human verification first',
     tsSecretKeep: 'Leave blank to keep unchanged',
     tsSecretInCloudflare: 'Set in Cloudflare Secret (takes priority)',
     tsSecretInDatabase: 'Stored encrypted in the database',
@@ -1348,6 +1570,42 @@ const I18N = {
     codesQueryResult: 'Remaining {remaining} / Total {total}',
     codesQueryResultInfinite: 'Remaining ∞ (unlimited)',
     codesPerBatch: 'Batch {id}',
+    // ═══════ Members & Admins ═══════
+    tabMembers: 'Members', tabRequests: 'Requests', tabAudit: 'Audit Log', tabPerms: 'Permissions', navMembers: 'Members',
+    memTitle: 'Member List', memSubtitle: 'Manage accounts, roles, quotas and login status',
+    memNew: 'New Member', memUsername: 'Username', memDisplay: 'Display Name', memPassword: 'Password', memRole: 'Role', memQuota: 'Quota (GB)',
+    memQuotaPh: 'Blank = unlimited', memCreate: 'Create', memCreateOk: 'Member created',
+    memRoleMember: 'Member', memRoleAdmin: 'Admin', memRoleSuper: 'Super Admin',
+    memStatus: 'Status', memActive: 'Active', memDisabled: 'Disabled', memDeleted: 'Deleted', memUnlimited: 'Unlimited',
+    memCreatedAt: 'Created', memLastLogin: 'Last Login', memQuotaCol: 'Quota', memActions: 'Actions',
+    memEdit: 'Edit', memDelete: 'Delete', memRevoke: 'Revoke Sessions', memDisableBtn: 'Disable', memEnableBtn: 'Enable', memResetPwd: 'Reset Password',
+    memNoUsers: 'No members yet', memUpdated: 'Updated', memDeletedOk: 'Member deleted', memRevokeOk: 'All sessions of this member have been revoked',
+    memConfirmDelete: 'Delete member "{name}"? Their sessions will be invalidated immediately.', memOnlySuper: 'Only super admins can manage admins',
+    memNewPwd: 'New Password', memPwdPh: 'At least 6 characters',
+    memNewTitle: 'New Member', memNewSub: 'Create a new account; leave quota blank to be limited only by the global 9.9 GB cap',
+    memEditTitle: 'Edit Member', memEditSub: 'Update profile, role, quota, or reset password',
+    memSave: 'Save', memUsernamePh: '3-32 of a-z0-9_.-',
+    memConfirmRevoke: 'Force all sessions of this member to expire?',
+    memInviteHint: 'Share the invite link; the recipient can self-register at /my',
+    memRoleHint: 'Admins can access the console (per permission bits); members only use their /my space',
+    // Invites
+    invTitle: 'Invite Codes', invNew: 'Generate Invite', invNote: 'Note', invNotePh: 'optional', invMaxUses: 'Max Uses', invExpires: 'Valid (hours)',
+    invDefaultRole: 'Default Role', invUsed: 'Used', invCreatedAt: 'Created', invStatus: 'Status',
+    invValid: 'Valid', invRevoked: 'Revoked', invExhausted: 'Exhausted', invExpired: 'Expired',
+    invCopy: 'Copy link', invRevoke: 'Revoke', invNoInvites: 'No invite codes yet', invCreated: 'Invite code generated', invConfirmRevoke: 'Revoke this invite code?', invForever: 'Never',
+    regEnabled: 'Open member registration', regEnabledD: 'When on, anyone with a valid invite can self-register at /my',
+    // Requests
+    reqTitle: 'Marketplace Publish Requests', reqSubtitle: 'Requests from members; approving creates a marketplace share',
+    reqPending: 'Pending', reqApproved: 'Approved', reqRejected: 'Rejected', reqAll: 'All',
+    reqRequester: 'Requester', reqFile: 'File', reqReqTitle: 'Title', reqReqDesc: 'Description', reqTime: 'Submitted', reqReviewedAt: 'Reviewed',
+    reqApprove: 'Approve', reqReject: 'Reject', reqReasonPh: 'Reason (optional)', reqApproveConfirm: 'Approving will publish this file to the marketplace. Continue?', reqRejectConfirm: 'Reject this request?',
+    reqDone: 'Reviewed', reqNoRequests: 'No requests',
+    // Audit
+    auditTitle: 'Audit Log', auditSubtitle: 'Records sensitive actions by admins and members, retained for ~90 days',
+    auditTime: 'Time', auditActor: 'Actor', auditAction: 'Action', auditTarget: 'Target', auditSummary: 'Summary', auditIP: 'IP', auditNoLogs: 'No logs yet',
+    // Permissions
+    permTitle: 'Admin Permissions', permSubtitle: 'Configure what the admin role can do (super always has everything)',
+    permSaved: 'Permissions saved', permOnlySuper: 'Only super admins can edit permissions',
   }
 };
 
@@ -1424,11 +1682,20 @@ function toast(msg, type='ok'){
 }
 
 function copyText(text){
-  if(navigator.clipboard?.writeText) return navigator.clipboard.writeText(text).then(() => toast(t('copied')));
-  const ta = document.createElement('textarea');
-  ta.value = text; document.body.appendChild(ta); ta.select();
-  document.execCommand('copy'); ta.remove();
-  return Promise.resolve(toast(t('copied')));
+  // 回退：clipboard API 不可用 / 被拒绝（页面失焦、非安全上下文、权限受限）时用 execCommand
+  const fallback = () => {
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+      toast(t('copied'));
+    }catch(e){ toast(text); }
+  };
+  if(navigator.clipboard?.writeText)
+    return navigator.clipboard.writeText(text).then(() => toast(t('copied'))).catch(fallback);
+  fallback();
+  return Promise.resolve();
 }
 
 const confirmDialog = (title, msg, danger=true) => new Promise(resolve => {
@@ -1462,7 +1729,60 @@ function closeModal(){ $('#modal')?.remove(); }
 /* ═══════════ 登录视图（支持 2FA 两阶段） ═══════════ */
 let siteTitle = 'cloud-r2pan';
 let loginStage = 'password'; // 'password' | '2fa' | 'recovery'
-let savedLoginKey = ''; // 第一阶段输入的 admin key
+let savedCred = { key: '' }; // 第一阶段凭证：{key} 或 {username,password}
+
+/* ── 登录用 Turnstile 人机验证 ──
+ * 后端 /api/turnstile 下发是否启用 + sitekey；启用时每个登录阶段都要带一个有效 token
+ * （Turnstile token 一次性，2FA 第二阶段必须重新取）。 */
+let TS = { required: false, sitekey: null, widgetId: null, token: '' };
+let tsApiLoading = null;
+function loadTurnstileApi(cb){
+  if(window.turnstile) return cb();
+  if(!tsApiLoading){
+    tsApiLoading = new Promise(res => {
+      const s = document.createElement('script');
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      s.async = true; s.defer = true;
+      s.onload = () => res(); s.onerror = () => res();
+      document.head.appendChild(s);
+    });
+  }
+  tsApiLoading.then(cb);
+}
+function renderTurnstile(sel){
+  TS.token = ''; TS.widgetId = null;
+  const host = document.querySelector(sel);
+  if(!TS.required || !TS.sitekey){ if(host) host.style.display = 'none'; return; }
+  loadTurnstileApi(() => {
+    const el = document.querySelector(sel);
+    if(!el || !window.turnstile) return;
+    el.style.display = 'flex';
+    el.innerHTML = '';
+    try{
+      TS.widgetId = window.turnstile.render(el, {
+        sitekey: TS.sitekey,
+        callback: tok => { TS.token = tok; },
+        'expired-callback': () => { TS.token = ''; },
+        'error-callback': () => { TS.token = ''; },
+      });
+    }catch(e){}
+  });
+}
+function resetTurnstile(){
+  TS.token = '';
+  try{ if(TS.widgetId != null && window.turnstile) window.turnstile.reset(TS.widgetId); }catch(e){}
+}
+/** 拉取一次 /api/turnstile（公开端点）→ 是否启用 + sitekey，缓存复用 */
+let tsConfigPromise = null;
+function ensureTsConfig(){
+  if(!tsConfigPromise){
+    tsConfigPromise = fetch('/api/turnstile').then(r => r.json()).then(d => {
+      TS.required = !!d.login;
+      TS.sitekey = d.sitekey || null;
+    }).catch(() => { TS.required = false; TS.sitekey = null; });
+  }
+  return tsConfigPromise;
+}
 
 function showLogin(){
   document.title = t('docTitle', {site: siteTitle});
@@ -1472,7 +1792,9 @@ function showLogin(){
       <h1>${esc(siteTitle)}</h1>
       <div class="sub">${esc(t('loginSubtitle'))}</div>
       <form id="login-form">
-        <input type="password" id="login-key" placeholder="${esc(t('keyPlaceholder'))}" autocomplete="current-password" autofocus>
+        <input type="text" id="login-user" placeholder="${esc(t('userPlaceholder'))}" autocomplete="username">
+        <input type="password" id="login-pass" placeholder="${esc(t('keyPlaceholder'))}" autocomplete="current-password" autofocus>
+        <div id="login-ts" style="margin:12px 0 14px;min-height:65px;display:flex;justify-content:center"></div>
         <button class="btn primary" type="submit">${esc(t('login'))}</button>
         <div class="err" id="login-err"></div>
       </form>
@@ -1480,12 +1802,14 @@ function showLogin(){
     `);
     $('#login-form').onsubmit = async e => {
       e.preventDefault();
-      const key = $('#login-key').value.trim();
-      if(!key) return;
-      savedLoginKey = key;
+      const user = $('#login-user').value.trim();
+      const pass = $('#login-pass').value;
+      if(!pass) return;
+      if(TS.required && !TS.token){ $('#login-err').textContent = t('tsRequired'); resetTurnstile(); return; }
+      savedCred = user ? { username: user, password: pass } : { key: pass };
       $('#login-err').textContent = '';
       try{
-        const r = await api('/api/admin/login', { method:'POST', body: JSON.stringify({ key }) });
+        const r = await api('/api/admin/login', { method:'POST', body: JSON.stringify({ ...savedCred, turnstile: TS.token }) });
         if(r.need_2fa){
           loginStage = '2fa';
           showLogin();
@@ -1494,16 +1818,19 @@ function showLogin(){
         }
       }catch(err){
         $('#login-err').textContent = err.message;
+        resetTurnstile();
         shake();
       }
     };
     $('#login-lang').onclick = toggleLang;
+    ensureTsConfig().then(() => renderTurnstile('#login-ts'));
   } else if(loginStage === '2fa'){
     renderLoginCard(`
       <h1>${esc(t('login2faTitle'))}</h1>
       <div class="sub">${esc(t('login2faSub'))}</div>
       <form id="login-form">
         <input type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" id="login-code" placeholder="${esc(t('login2faPh'))}" autocomplete="one-time-code" autofocus style="text-align:center;letter-spacing:.4em;font-size:20px">
+        <div id="login-ts" style="margin:12px 0 14px;min-height:65px;display:flex;justify-content:center"></div>
         <button class="btn primary" type="submit">${esc(t('login2faCode'))}</button>
         <div class="err" id="login-err"></div>
       </form>
@@ -1516,23 +1843,27 @@ function showLogin(){
       e.preventDefault();
       const code = $('#login-code').value.trim();
       if(!/^\d{6}$/.test(code)) return;
+      if(TS.required && !TS.token){ $('#login-err').textContent = t('tsRequired'); resetTurnstile(); return; }
       $('#login-err').textContent = '';
       try{
-        const r = await api('/api/admin/login', { method:'POST', body: JSON.stringify({ key: savedLoginKey, code }) });
+        const r = await api('/api/admin/login', { method:'POST', body: JSON.stringify({ ...savedCred, code, turnstile: TS.token }) });
         showApp();
       }catch(err){
         $('#login-err').textContent = err.message;
+        resetTurnstile();
         shake();
       }
     };
     $('#login-back').onclick = () => { loginStage = 'password'; showLogin(); };
     $('#login-recovery').onclick = () => { loginStage = 'recovery'; showLogin(); };
+    ensureTsConfig().then(() => renderTurnstile('#login-ts'));
   } else {
     renderLoginCard(`
       <h1>${esc(t('login2faTitle'))}</h1>
       <div class="sub">${esc(t('login2faRecoveryHint'))}</div>
       <form id="login-form">
         <input type="text" id="login-recovery-code" placeholder="${esc(t('login2faRecoveryPh'))}" autocomplete="off" autofocus style="letter-spacing:.15em">
+        <div id="login-ts" style="margin:12px 0 14px;min-height:65px;display:flex;justify-content:center"></div>
         <button class="btn primary" type="submit">${esc(t('confirm'))}</button>
         <div class="err" id="login-err"></div>
       </form>
@@ -1544,9 +1875,10 @@ function showLogin(){
       e.preventDefault();
       const code = $('#login-recovery-code').value.trim();
       if(!code) return;
+      if(TS.required && !TS.token){ $('#login-err').textContent = t('tsRequired'); resetTurnstile(); return; }
       $('#login-err').textContent = '';
       try{
-        const r = await api('/api/admin/login', { method:'POST', body: JSON.stringify({ key: savedLoginKey, code }) });
+        const r = await api('/api/admin/login', { method:'POST', body: JSON.stringify({ ...savedCred, code, turnstile: TS.token }) });
         if(r.recovery_used && r.totp_reset){
           // 弹出恢复成功提示
           openModal(`
@@ -1560,10 +1892,12 @@ function showLogin(){
         showApp();
       }catch(err){
         $('#login-err').textContent = err.message;
+        resetTurnstile();
         shake();
       }
     };
     $('#login-back').onclick = () => { loginStage = '2fa'; showLogin(); };
+    ensureTsConfig().then(() => renderTurnstile('#login-ts'));
   }
   // 焦点处理
   setTimeout(() => {
@@ -1597,6 +1931,12 @@ const NAV_GROUPS = [
       { tab: 'shares',  label: () => t('tabShares'),  ic: '🔗' },
       { tab: 'direct',  label: () => t('tabDirect'),  ic: '⚡' },
     ]},
+  { key: 'members', ic: '👥', label: () => t('navMembers'), subs: [
+      { tab: 'members',  label: () => t('tabMembers'),  ic: '👤', perm: 'member.manage' },
+      { tab: 'requests', label: () => t('tabRequests'), ic: '📝', perm: 'request.review' },
+      { tab: 'audit',    label: () => t('tabAudit'),    ic: '🧾', perm: 'log.read' },
+      { tab: 'perms',    label: () => t('tabPerms'),    ic: '🔑', perm: '__super__' },
+    ]},
   { key: 'analytics', ic: '📈', label: () => t('navAnalytics'), subs: [
       { tab: 'logs',   label: () => t('tabLogs'),   ic: '📋' },
       { tab: 'global', label: () => t('tabGlobal'), ic: '🌍' },
@@ -1621,33 +1961,46 @@ NAV_GROUPS.forEach(g => {
 let currentTab = 'overview';
 let openGroup = 'overview'; // 当前展开的侧边栏分组
 let logsPage = 1, logsQuery = '';
+let ROLE = 'super', PERMS = [];  // 当前登录者身份与权限（后端 /session 下发）
+let IMPLICIT_SUPER = false;      // 用 admin 密钥登录的隐式超管（uid 为空，没有 /my 独立空间）
+/** 是否可见某个受权限保护的菜单项（super 全可见） */
+function canSee(perm){ return !perm || ROLE === 'super' || PERMS.includes(perm); }
 
 async function showApp(){
-  loginStage = 'password'; savedLoginKey = '';
+  loginStage = 'password'; savedCred = { key: '' };
   try{
     const s = await api('/api/admin/session');
     siteTitle = s.site_title || siteTitle;
+    ROLE = s.role || 'super';
+    PERMS = s.permissions || [];
+    IMPLICIT_SUPER = !!s.implicit_super;
     // 隐藏路由：访问 /admin/apple 强制 Apple 玻璃风格（暗色紫蓝渐变）
     const path = location.pathname;
     if (/\/admin\/apple(\/|$)/.test(path)) {
       document.documentElement.dataset.theme = 'apple-dark';
     } else {
-      // 根据后端偏好设置主题（默认 dark）
-      document.documentElement.dataset.theme = s.ui_theme === 'light' ? 'light' : 'dark';
+      // 根据后端偏好设置主题（默认 light）
+      document.documentElement.dataset.theme = s.ui_theme === 'dark' ? 'dark' : 'light';
     }
-  }catch{
+  }catch(err){
+    // 普通成员无权访问后台：回到登录页（成员请使用 /my）
+    const m = String(err && err.message || '');
+    if (m === 'forbidden' || m === 'unauthorized') { showLogin(); return; }
     // 兜底
-    document.documentElement.dataset.theme = location.pathname.includes('/admin/apple') ? 'apple-dark' : 'dark';
+    document.documentElement.dataset.theme = location.pathname.includes('/admin/apple') ? 'apple-dark' : 'light';
   }
   document.title = t('docTitle', {site: siteTitle});
 
   // 渲染侧边栏
   const sidebarHtml = NAV_GROUPS.map(g => {
     const isSingle = !g.subs;
+    // 按权限过滤子项；无可见子项的分组直接跳过
+    const subs = g.subs ? g.subs.filter(s => canSee(s.perm)) : null;
+    if (g.subs && subs.length === 0) return '';
     const active = (isSingle && currentTab === g.tab) || TAB_TO_GROUP[currentTab] === g.key;
-    const subHtml = g.subs ? `
+    const subHtml = subs ? `
       <div class="sb-sub ${active ? 'open' : ''}" data-sub="${g.key}">
-        ${g.subs.map(s => `
+        ${subs.map(s => `
           <button data-tab="${s.tab}" class="${currentTab === s.tab ? 'active' : ''}">
             <span class="ic">${s.ic}</span>${esc(s.label())}
           </button>`).join('')}
@@ -1655,7 +2008,7 @@ async function showApp(){
     return `
       <button class="sb-main ${active ? 'open' : ''} ${isSingle ? 'single' : ''}" data-group="${g.key}" data-tab="${g.tab || ''}">
         <span class="ic">${g.ic}</span>${esc(g.label())}
-        ${g.subs ? '<span class="chev">▶</span>' : ''}
+        ${subs ? '<span class="chev">▶</span>' : ''}
       </button>
       ${subHtml}`;
   }).join('');
@@ -1670,6 +2023,7 @@ async function showApp(){
         <span class="bar"><i id="pill-bar" style="width:0%"></i></span>
         <span id="pill-text">— / —</span>
       </div>
+      ${IMPLICIT_SUPER ? '' : `<a class="btn sm" id="my-space-btn" href="/my" title="${esc(t('mySpaceTip'))}">${esc(t('mySpace'))}</a>`}
       <button class="btn sm" id="theme-toggle" title="🌙 / ☀️" style="font-size:16px;padding:9px 11px;line-height:1">${document.documentElement.dataset.theme === 'light' ? '🌙' : '☀️'}</button>
       <button class="btn sm" id="lang-btn">${esc(t('switchTo'))}</button>
       <button class="btn sm" id="logout-btn">${esc(t('logout'))}</button>
@@ -1722,6 +2076,7 @@ const TAB_LOADERS = {
   overview: loadOverview, files: loadFiles, storage: loadStorage, shares: loadShares,
   direct: loadDirectLinks, logs: loadLogs, bans: loadBans,
   global: loadGlobal, codes: loadCodes, security: loadSecurity, webdav: loadWebDAV, settings: loadSettings,
+  members: loadMembers, requests: loadRequests, audit: loadAudit, perms: loadPerms,
 };
 
 function switchTab(tab){
@@ -2402,6 +2757,309 @@ async function loadBans(){
   $$('[data-unban]').forEach(b => b.onclick = async () => {
     await api(`/api/admin/bans/${encodeURIComponent(b.dataset.unban)}`, { method:'DELETE' });
     toast(t('unbannedIp', {ip: b.dataset.unban})); loadBans();
+  });
+}
+
+/* ═══════════ 成员管理（成员 / 邀请码） ═══════════ */
+const ROLE_KEY = { super: 'memRoleSuper', admin: 'memRoleAdmin', member: 'memRoleMember' };
+const ROLE_TAG = { super: 'revoked', admin: 'expired', member: 'active' };
+const INPUT_STYLE = "width:100%;padding:10px 12px;border-radius:12px;font-size:14px;color:var(--text);background:var(--sf-input);border:1px solid var(--stroke-strong);outline:none;font-family:inherit";
+const roleTag = role => `<span class="tag ${ROLE_TAG[role] || ''}"><i></i>${esc(t(ROLE_KEY[role] || role))}</span>`;
+function memStatusTag(u){
+  if(u.deleted) return `<span class="tag revoked"><i></i>${esc(t('memDeleted'))}</span>`;
+  if(u.disabled_effective) return `<span class="tag expired"><i></i>${esc(t('memDisabled'))}</span>`;
+  return `<span class="tag active"><i></i>${esc(t('memActive'))}</span>`;
+}
+/** 当前登录者是否有权管理该账号（非 super 只能管理普通成员） */
+const canManageUser = u => ROLE === 'super' || u.role === 'member';
+
+async function loadMembers(){
+  const [ur, ir] = await Promise.all([ api('/api/admin/users'), api('/api/admin/invites') ]);
+  const users = ur.users || [], invites = ir.invites || [];
+
+  const rows = users.map(u => {
+    const can = canManageUser(u);
+    const superRow = u.role === 'super';
+    return `
+      <tr>
+        <td class="name-cell">${esc(u.username)}${u.display_name && u.display_name !== u.username ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px">${esc(u.display_name)}</div>` : ''}</td>
+        <td>${roleTag(u.role)}</td>
+        <td>${memStatusTag(u)}</td>
+        <td class="num">${u.quota_bytes ? fmtSize(u.quota_bytes) : esc(t('memUnlimited'))}</td>
+        <td class="num">${fmtTime(u.created_at)}</td>
+        <td class="num">${u.last_login_at ? fmtTime(u.last_login_at) : '—'}</td>
+        <td><div class="actions-cell">
+          ${can ? `<button class="btn sm primary" data-medit="${u.id}">${esc(t('memEdit'))}</button>` : ''}
+          ${can && !superRow ? `<button class="btn sm" data-mtog="${u.id}" data-dis="${u.disabled_effective?1:0}">${esc(u.disabled_effective ? t('memEnableBtn') : t('memDisableBtn'))}</button>` : ''}
+          ${can ? `<button class="btn sm" data-mrev="${u.id}">${esc(t('memRevoke'))}</button>` : ''}
+          ${can && !superRow ? `<button class="btn sm danger" data-mdel="${u.id}" data-name="${esc(u.username)}">${esc(t('memDelete'))}</button>` : ''}
+        </div></td>
+      </tr>`;
+  }).join('');
+
+  const now = Date.now();
+  const invStatus = inv => inv.deleted_at ? ['invRevoked','revoked']
+    : (inv.expires_at && inv.expires_at < now) ? ['invExpired','expired']
+    : inv.used_count >= inv.max_uses ? ['invExhausted','maxed'] : ['invValid','active'];
+  const inviteRows = invites.map(inv => {
+    const [sk, cls] = invStatus(inv);
+    return `
+      <tr>
+        <td class="mono name-cell">${esc(inv.token)}${inv.note ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px">${esc(inv.note)}</div>` : ''}</td>
+        <td>${roleTag(inv.default_role)}</td>
+        <td class="num">${inv.used_count} / ${inv.max_uses}</td>
+        <td class="num">${inv.expires_at ? fmtTime(inv.expires_at) : esc(t('invForever'))}</td>
+        <td><span class="tag ${cls}"><i></i>${esc(t(sk))}</span></td>
+        <td><div class="actions-cell">
+          <button class="btn sm" data-icopy="${esc(location.origin + '/my?invite=' + inv.token)}">${esc(t('invCopy'))}</button>
+          ${inv.deleted_at ? '' : `<button class="btn sm danger" data-irev="${inv.id}">${esc(t('invRevoke'))}</button>`}
+        </div></td>
+      </tr>`;
+  }).join('');
+
+  $('#view').innerHTML = `
+    <div class="glass section" style="margin-bottom:18px">
+      <div class="section-title"><h2>👥 ${esc(t('memTitle'))}（${users.length}）</h2>
+        <button class="btn primary sm" id="mem-new">＋ ${esc(t('memNew'))}</button></div>
+      <div class="tip" style="margin-bottom:12px">${esc(t('memSubtitle'))}</div>
+      ${users.length ? `
+      <div style="overflow-x:auto"><table class="tbl">
+        <thead><tr><th>${esc(t('memUsername'))}</th><th>${esc(t('memRole'))}</th><th>${esc(t('memStatus'))}</th><th>${esc(t('memQuotaCol'))}</th><th>${esc(t('memCreatedAt'))}</th><th>${esc(t('memLastLogin'))}</th><th>${esc(t('memActions'))}</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>` : `<div class="empty"><div class="icon">👥</div>${esc(t('memNoUsers'))}</div>`}
+    </div>
+    <div class="glass section">
+      <div class="section-title"><h2>🎟️ ${esc(t('invTitle'))}</h2>
+        <button class="btn sm" id="inv-new">＋ ${esc(t('invNew'))}</button></div>
+      <div class="tip" style="margin-bottom:12px">${esc(t('memInviteHint'))}</div>
+      ${invites.length ? `
+      <div style="overflow-x:auto"><table class="tbl">
+        <thead><tr><th>${esc(t('invTitle'))}</th><th>${esc(t('invDefaultRole'))}</th><th>${esc(t('invUsed'))}</th><th>${esc(t('invExpires'))}</th><th>${esc(t('invStatus'))}</th><th>${esc(t('memActions'))}</th></tr></thead>
+        <tbody>${inviteRows}</tbody>
+      </table></div>` : `<div class="empty"><div class="icon">🎟️</div>${esc(t('invNoInvites'))}</div>`}
+    </div>`;
+
+  $('#mem-new').onclick = () => openMemberModal(null);
+  $('#inv-new').onclick = openInviteModal;
+  $$('[data-medit]').forEach(b => b.onclick = () => openMemberModal(users.find(x => x.id === b.dataset.medit)));
+  $$('[data-mtog]').forEach(b => b.onclick = async () => {
+    const off = b.dataset.dis === '1';
+    try{ await api(`/api/admin/users/${b.dataset.mtog}`, { method:'PATCH', body: JSON.stringify({ disabled: !off }) }); toast(t('memUpdated')); loadMembers(); }
+    catch(e){ toast(e.message, 'err'); }
+  });
+  $$('[data-mrev]').forEach(b => b.onclick = async () => {
+    if(!(await confirmDialog(t('memRevoke'), t('memConfirmRevoke')))) return;
+    try{ await api(`/api/admin/users/${b.dataset.mrev}/session-revoke`, { method:'POST' }); toast(t('memRevokeOk')); }
+    catch(e){ toast(e.message, 'err'); }
+  });
+  $$('[data-mdel]').forEach(b => b.onclick = async () => {
+    if(!(await confirmDialog(t('memDelete'), t('memConfirmDelete', {name: b.dataset.name})) )) return;
+    try{ await api(`/api/admin/users/${b.dataset.mdel}`, { method:'DELETE' }); toast(t('memDeletedOk')); loadMembers(); }
+    catch(e){ toast(e.message, 'err'); }
+  });
+  $$('[data-icopy]').forEach(b => b.onclick = () => copyText(b.dataset.icopy));
+  $$('[data-irev]').forEach(b => b.onclick = async () => {
+    if(!(await confirmDialog(t('invRevoke'), t('invConfirmRevoke')))) return;
+    try{ await api(`/api/admin/invites/${b.dataset.irev}`, { method:'DELETE' }); toast(t('invRevoked')); loadMembers(); }
+    catch(e){ toast(e.message, 'err'); }
+  });
+}
+
+function openMemberModal(u){
+  const isNew = !u, canPick = ROLE === 'super';
+  const roleOpt = r => `<option value="${r}" ${(!isNew && u.role === r) || (isNew && r === 'member') ? 'selected' : ''}>${esc(t(ROLE_KEY[r]))}</option>`;
+  openModal(`
+    <h3>${esc(isNew ? t('memNewTitle') : t('memEditTitle'))}</h3>
+    <div class="sub">${esc(isNew ? t('memNewSub') : t('memEditSub'))}</div>
+    <div class="field" style="margin-top:14px"><label>${esc(t('memUsername'))}</label>
+      <input type="text" id="m-user" value="${esc(u ? u.username : '')}" placeholder="${esc(t('memUsernamePh'))}" ${isNew ? '' : 'disabled'} style="${INPUT_STYLE}"></div>
+    <div class="field"><label>${esc(t('memDisplay'))}</label>
+      <input type="text" id="m-disp" value="${esc(u ? u.display_name : '')}" style="${INPUT_STYLE}"></div>
+    <div class="field"><label>${esc(t('memRole'))}</label>
+      <select id="m-role" ${canPick ? '' : 'disabled'} style="${INPUT_STYLE}">${roleOpt('member')}${canPick ? roleOpt('admin') + roleOpt('super') : ''}</select>
+      <div class="tip">${esc(t('memRoleHint'))}</div></div>
+    <div class="field"><label>${esc(t('memQuota'))}</label>
+      <input type="number" id="m-quota" min="0" step="0.1" value="${u && u.quota_bytes ? (u.quota_bytes / 1024 ** 3).toFixed(2) : ''}" placeholder="${esc(t('memQuotaPh'))}" style="${INPUT_STYLE}"></div>
+    <div class="field"><label>${esc(isNew ? t('memPassword') : t('memNewPwd'))}</label>
+      <input type="password" id="m-pwd" placeholder="${esc(t('memPwdPh'))}" style="${INPUT_STYLE}"></div>
+    ${!isNew && u.role !== 'super' ? `
+    <div class="field"><label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+      <input type="checkbox" id="m-dis" ${u.disabled_effective ? 'checked' : ''}><span>${esc(t('memDisabled'))}</span></label></div>` : ''}
+    <div class="actions">
+      <button class="btn" data-x>${esc(t('cancel'))}</button>
+      <button class="btn primary" data-ok>${esc(isNew ? t('memCreate') : t('memSave'))}</button>
+    </div>`);
+  $('[data-x]').onclick = closeModal;
+  $('[data-ok]').onclick = async () => {
+    const pwd = $('#m-pwd').value;
+    const qv = $('#m-quota').value.trim();
+    if(isNew){
+      try{
+        await api('/api/admin/users', { method:'POST', body: JSON.stringify({
+          username: $('#m-user').value.trim(), display_name: $('#m-disp').value.trim(),
+          password: pwd, role: $('#m-role').value, quota_gb: qv ? Number(qv) : 0 }) });
+        closeModal(); toast(t('memCreateOk')); loadMembers();
+      }catch(e){ toast(e.message, 'err'); }
+      return;
+    }
+    const body = { display_name: $('#m-disp').value.trim(), quota_gb: qv ? Number(qv) : null };
+    if(canPick) body.role = $('#m-role').value;
+    if(pwd) body.password = pwd;
+    const dis = $('#m-dis'); if(dis) body.disabled = dis.checked;
+    try{ await api(`/api/admin/users/${u.id}`, { method:'PATCH', body: JSON.stringify(body) }); closeModal(); toast(t('memUpdated')); loadMembers(); }
+    catch(e){ toast(e.message, 'err'); }
+  };
+}
+
+function openInviteModal(){
+  const canAdmin = ROLE === 'super';
+  openModal(`
+    <h3>${esc(t('invNew'))}</h3>
+    <div class="sub">${esc(t('memInviteHint'))}</div>
+    <div class="field" style="margin-top:14px"><label>${esc(t('invNote'))}</label>
+      <input type="text" id="i-note" placeholder="${esc(t('invNotePh'))}" style="${INPUT_STYLE}"></div>
+    <div class="field"><label>${esc(t('invMaxUses'))}</label>
+      <input type="number" id="i-uses" min="1" max="1000" value="1" style="${INPUT_STYLE}"></div>
+    <div class="field"><label>${esc(t('invExpires'))}</label>
+      <input type="number" id="i-exp" min="0" placeholder="0" style="${INPUT_STYLE}"></div>
+    <div class="field"><label>${esc(t('invDefaultRole'))}</label>
+      <select id="i-role" style="${INPUT_STYLE}">
+        <option value="member">${esc(t('memRoleMember'))}</option>
+        ${canAdmin ? `<option value="admin">${esc(t('memRoleAdmin'))}</option>` : ''}
+      </select></div>
+    <div class="actions">
+      <button class="btn" data-x>${esc(t('cancel'))}</button>
+      <button class="btn primary" data-ok>${esc(t('invNew'))}</button>
+    </div>`);
+  $('[data-x]').onclick = closeModal;
+  $('[data-ok]').onclick = async () => {
+    try{
+      const r = await api('/api/admin/invites', { method:'POST', body: JSON.stringify({
+        note: $('#i-note').value.trim(), max_uses: Number($('#i-uses').value) || 1,
+        expires_hours: Number($('#i-exp').value) || 0, default_role: $('#i-role').value }) });
+      closeModal(); copyText(location.origin + '/my?invite=' + r.token); toast(t('invCreated')); loadMembers();
+    }catch(e){ toast(e.message, 'err'); }
+  };
+}
+
+/* ═══════════ 申请审批 ═══════════ */
+let reqStatus = 'pending';
+async function loadRequests(){
+  const d = await api(`/api/admin/requests?status=${reqStatus}`);
+  const requests = d.requests || [];
+  const sTag = s => s === 'approved'
+    ? `<span class="tag active"><i></i>${esc(t('reqApproved'))}</span>`
+    : s === 'rejected'
+      ? `<span class="tag revoked"><i></i>${esc(t('reqRejected'))}</span>`
+      : `<span class="tag" style="background:rgba(10,132,255,.16);color:#93c5fd"><i></i>${esc(t('reqPending'))}</span>`;
+  const filters = [['pending','reqPending'],['approved','reqApproved'],['rejected','reqRejected'],['all','reqAll']];
+  $('#view').innerHTML = `
+    <div class="glass section">
+      <div class="section-title"><h2>📝 ${esc(t('reqTitle'))}</h2>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${filters.map(([v,k]) => `<button class="btn sm ${reqStatus===v?'primary':''}" data-reqstat="${v}">${esc(t(k))}</button>`).join('')}
+        </div></div>
+      <div class="tip" style="margin-bottom:12px">${esc(t('reqSubtitle'))}</div>
+      ${requests.length ? `
+      <div style="overflow-x:auto"><table class="tbl">
+        <thead><tr><th>${esc(t('reqRequester'))}</th><th>${esc(t('reqFile'))}</th><th>${esc(t('reqReqTitle'))}</th><th>${esc(t('reqReqDesc'))}</th><th>${esc(t('reqTime'))}</th><th>${esc(t('colStatus'))}</th><th>${esc(t('memActions'))}</th></tr></thead>
+        <tbody>${requests.map(r => `
+          <tr>
+            <td class="name-cell">${esc(r.requester_username || '—')}${r.requester_name && r.requester_name !== r.requester_username ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px">${esc(r.requester_name)}</div>` : ''}</td>
+            <td class="name-cell">${ficon(r.file_name)} ${esc(r.file_name || '—')}<div class="num" style="font-size:11px;color:var(--text-3)">${fmtSize(r.file_size)}</div></td>
+            <td class="name-cell" title="${esc(r.title)}">${esc(r.title || '—')}</td>
+            <td class="name-cell" title="${esc(r.description)}">${esc(r.description || '—')}</td>
+            <td class="num">${fmtTime(r.created_at)}${r.reviewed_at ? `<div style="font-size:11px;color:var(--text-3)">${esc(t('reqReviewedAt'))} ${fmtTime(r.reviewed_at)}</div>` : ''}</td>
+            <td>${sTag(r.status)}${r.review_reason ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px">${esc(r.review_reason)}</div>` : ''}</td>
+            <td><div class="actions-cell">
+              ${r.status === 'pending' ? `
+                <button class="btn sm primary" data-rap="${r.id}">${esc(t('reqApprove'))}</button>
+                <button class="btn sm danger" data-rrj="${r.id}">${esc(t('reqReject'))}</button>` : `<span style="color:var(--text-3)">${esc(t('reqDone'))}</span>`}
+            </div></td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>` : `<div class="empty"><div class="icon">📝</div>${esc(t('reqNoRequests'))}</div>`}
+    </div>`;
+  $$('[data-reqstat]').forEach(b => b.onclick = () => { reqStatus = b.dataset.reqstat; loadRequests(); });
+  $$('[data-rap]').forEach(b => b.onclick = async () => {
+    if(!(await confirmDialog(t('reqApprove'), t('reqApproveConfirm'), false))) return;
+    try{ await api(`/api/admin/requests/${b.dataset.rap}/review`, { method:'POST', body: JSON.stringify({ action:'approve' }) }); toast(t('reqDone')); loadRequests(); }
+    catch(e){ toast(e.message, 'err'); }
+  });
+  $$('[data-rrj]').forEach(b => b.onclick = () => {
+    openModal(`
+      <h3>${esc(t('reqReject'))}</h3>
+      <div class="field" style="margin-top:12px"><label>${esc(t('colReason'))}</label>
+        <input type="text" id="rr-reason" placeholder="${esc(t('reqReasonPh'))}" style="${INPUT_STYLE}"></div>
+      <div class="actions">
+        <button class="btn" data-x>${esc(t('cancel'))}</button>
+        <button class="btn danger" data-ok>${esc(t('confirm'))}</button>
+      </div>`);
+    $('[data-x]').onclick = closeModal;
+    $('[data-ok]').onclick = async () => {
+      try{ await api(`/api/admin/requests/${b.dataset.rrj}/review`, { method:'POST', body: JSON.stringify({ action:'reject', reason: $('#rr-reason').value.trim() }) }); closeModal(); toast(t('reqDone')); loadRequests(); }
+      catch(e){ toast(e.message, 'err'); }
+    };
+  });
+}
+
+/* ═══════════ 操作审计 ═══════════ */
+let auditPage = 1;
+async function loadAudit(){
+  const d = await api(`/api/admin/audit?page=${auditPage}&per_page=30`);
+  const logs = d.logs || [];
+  $('#view').innerHTML = `
+    <div class="glass section">
+      <div class="section-title"><h2>🧾 ${esc(t('auditTitle'))}（${d.total}）</h2></div>
+      <div class="tip" style="margin-bottom:12px">${esc(t('auditSubtitle'))}</div>
+      ${logs.length ? `
+      <div style="overflow-x:auto"><table class="tbl">
+        <thead><tr><th>${esc(t('auditTime'))}</th><th>${esc(t('auditActor'))}</th><th>${esc(t('auditAction'))}</th><th>${esc(t('auditTarget'))}</th><th>${esc(t('auditSummary'))}</th><th>${esc(t('auditIP'))}</th></tr></thead>
+        <tbody>${logs.map(l => `
+          <tr>
+            <td class="num">${fmtTime(l.created_at)}</td>
+            <td class="name-cell">${esc(l.actor_name || '—')}</td>
+            <td><span class="tag ${l.result === 'success' ? 'active' : 'revoked'}" style="font-size:11px"><i></i>${esc(l.action)}</span></td>
+            <td class="mono name-cell" title="${esc(l.target)}">${esc(l.target || '—')}</td>
+            <td class="name-cell" title="${esc(l.summary)}">${esc(l.summary || '—')}</td>
+            <td class="mono">${esc(l.ip || '—')}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>
+      <div class="pager">
+        <button class="btn sm" id="aud-prev" ${d.page<=1?'disabled':''}>${esc(t('prev'))}</button>
+        <span class="info">${esc(t('pageOf',{a:d.page,b:d.pages}))}</span>
+        <button class="btn sm" id="aud-next" ${d.page>=d.pages?'disabled':''}>${esc(t('next'))}</button>
+      </div>` : `<div class="empty"><div class="icon">🧾</div>${esc(t('auditNoLogs'))}</div>`}
+    </div>`;
+  $('#aud-prev')?.addEventListener('click', () => { auditPage--; loadAudit(); });
+  $('#aud-next')?.addEventListener('click', () => { auditPage++; loadAudit(); });
+}
+
+/* ═══════════ 管理员权限位 ═══════════ */
+async function loadPerms(){
+  const d = await api('/api/admin/role-permissions');
+  const cur = new Set(d.permissions || []);
+  const cat = d.catalog || [];
+  const isSuper = ROLE === 'super';
+  $('#view').innerHTML = `
+    <div class="glass section">
+      <div class="section-title"><h2>🔑 ${esc(t('permTitle'))}</h2>
+        ${isSuper ? `<button class="btn primary sm" id="perm-save">${esc(t('memSave'))}</button>` : ''}</div>
+      <div class="tip" style="margin-bottom:14px">${esc(t('permSubtitle'))}</div>
+      ${!isSuper ? `<div class="tip" style="margin-bottom:14px;color:#fcd34d">${esc(t('permOnlySuper'))}</div>` : ''}
+      <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))">
+        ${cat.map(p => `
+          <label style="display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;background:var(--sf-soft);border:1px solid var(--stroke);cursor:${isSuper?'pointer':'default'}">
+            <input type="checkbox" data-perm="${p.key}" ${cur.has(p.key) ? 'checked' : ''} ${isSuper ? '' : 'disabled'}>
+            <span><div style="font-size:13.5px">${esc(p.label)}</div><div class="mono" style="font-size:11px;color:var(--text-3)">${esc(p.key)}</div></span>
+          </label>`).join('')}
+      </div>
+    </div>`;
+  $('#perm-save')?.addEventListener('click', async () => {
+    const permissions = $$('[data-perm]').filter(c => c.checked).map(c => c.dataset.perm);
+    try{ await api('/api/admin/role-permissions', { method:'PUT', body: JSON.stringify({ permissions }) }); toast(t('permSaved')); loadPerms(); }
+    catch(e){ toast(e.message, 'err'); }
   });
 }
 
@@ -3178,6 +3836,16 @@ async function loadSettings(){
       </div>
       <div class="tip" style="margin-top:8px">${esc(t('homeRedirectMarketHint'))}</div>
     </div>
+    <!-- 开放成员注册 -->
+    <div class="glass group">
+      <div class="row">
+        <div class="info"><div class="t">👥 ${esc(t('regEnabled'))}</div><div class="d">${esc(t('regEnabledD'))}</div></div>
+        <label class="switch">
+          <input type="checkbox" id="st-reg-enabled" ${s.member_registration_enabled !== false ? 'checked' : ''}>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
     <!-- 激活码浮动按钮组 -->
     <div class="glass group">
       <div class="row">
@@ -3417,6 +4085,7 @@ async function loadSettings(){
       oauth_enabled: $('#oauth-enabled').checked,
       admin_ips: $('#st-adminips').value.trim(),
       home_redirect_market: $('#st-home-market').checked,
+      member_registration_enabled: $('#st-reg-enabled').checked,
       codes_floating_button_enabled: $('#st-codes-float').checked,
       codes_floating_button_position: $('#st-codes-pos').value,
       storage_provider: $('#st-backend').value,
@@ -3529,6 +4198,13 @@ async function loadSettings(){
         </select>
       </div>
       <div class="field">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="ts-login" ${s.turnstile_login !== false ? 'checked' : ''} style="width:auto;margin:0">
+          <span>${esc(t('tsLoginToggle'))}</span>
+        </label>
+        <div class="tip">${esc(t('tsLoginToggleHelp'))}</div>
+      </div>
+      <div class="field">
         <label>${esc(t('tsThreshold'))}</label>
         <input type="number" id="ts-th" min="0" max="10000" value="${s.turnstile_threshold ?? 5}" style="width:100%;padding:10px 12px;border-radius:12px;font-size:13px;color:var(--text);background:var(--sf-input);border:1px solid var(--stroke-strong);outline:none">
         <div class="tip">${esc(t('tsThresholdHelp'))}</div>
@@ -3572,6 +4248,7 @@ async function loadSettings(){
       }
       const body = {
         turnstile_mode: $('#ts-m').value,
+        turnstile_login: $('#ts-login').checked,
         turnstile_threshold: Number($('#ts-th').value) || 0,
         turnstile_sitekey_override: $('#ts-sko').value.trim(),
         turnstile_secret: secretPayload,
@@ -3834,6 +4511,7 @@ function showRecoveryCodes(codes){
 
 /* ═══════════ 启动 ═══════════ */
 (async () => {
+  ensureTsConfig();
   try{
     const s = await api('/api/admin/session');
     siteTitle = s.site_title || siteTitle;
