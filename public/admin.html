@@ -66,57 +66,78 @@
 /* ═══════════════════════════════════════════════════════════
    简洁亮色
    ═══════════════════════════════════════════════════════════ */
+/* 令牌取值对齐 Edgechat 后台（frontend/src/styles/admin/tokens.css） */
 :root[data-theme="light"] {
-  --bg-page: radial-gradient(circle at 12% 8%, rgba(45,156,151,.20), transparent 32%), radial-gradient(circle at 88% 16%, rgba(90,143,203,.18), transparent 34%), radial-gradient(circle at 76% 88%, rgba(90,143,203,.13), transparent 30%), radial-gradient(circle at 28% 72%, rgba(45,156,151,.11), transparent 26%), linear-gradient(180deg, #eef5f9 0%, #e6eef4 100%);
-  --orb-1: #2d9c97; --orb-2: #5a8fcb; --orb-3: #7fb0d6;
-  --orb-opacity: 0.16;
+  --bg-page: #f0f3f8;
+  --orb-1: transparent; --orb-2: transparent; --orb-3: transparent;
+  --orb-opacity: 0;
 
   --glass: #ffffff;
   --glass-strong: #ffffff;
-  --stroke: rgba(0,0,0,.07);
-  --stroke-strong: rgba(0,0,0,.14);
+  --stroke: #e8ebf0;
+  --stroke-strong: #d8dde4;
 
-  --text: #1d1d1f;
-  --text-2: rgba(0,0,0,.6);
-  --text-3: rgba(0,0,0,.5);
+  --text: #20232c;
+  --text-2: #626977;
+  --text-3: #9aa1ad;
 
-  --sf-soft: rgba(0,0,0,.04);
-  --sf: rgba(0,0,0,.055);
-  --sf-strong: rgba(0,0,0,.09);
-  --sf-input: rgba(0,0,0,.05);
-  --sf-input-focus: rgba(0,0,0,.08);
+  --sf-soft: #f9fafc;
+  --sf: #f3f4f6;
+  --sf-strong: #eef1f5;
+  --sf-input: #ffffff;
+  --sf-input-focus: #ffffff;
 
-  --shadow-soft: 0 1px 3px rgba(0,0,0,.08);
-  --shadow-topbar: 0 1px 2px rgba(0,0,0,.08);
+  --shadow-soft: 0 1px 2px rgba(13,23,49,.035);
+  --shadow-topbar: none;
   --shadow-inset-hi: none;
-  --shadow-glass: 0 1px 3px rgba(0,0,0,.08);
-  --shadow-topbar-box: 0 1px 2px rgba(0,0,0,.08);
-  --shadow-modal: 0 10px 40px rgba(0,0,0,.12);
-  --shadow-btn-primary: 0 2px 6px rgba(10,124,255,.25);
-  --shadow-btn-danger: 0 2px 6px rgba(255,69,58,.12);
-  --shadow-btn-plain: 0 1px 0 rgba(0,0,0,.08);
-  --shadow-btn-plain-hover: 0 1px 4px rgba(0,0,0,.08);
-  --shadow-spinner-track: rgba(0,0,0,.1);
-  --shadow-switch-thumb: 0 1px 3px rgba(0,0,0,.2);
-  --shadow-toast: 0 6px 20px rgba(0,0,0,.12);
+  --shadow-glass: 0 1px 2px rgba(13,23,49,.035);
+  --shadow-topbar-box: none;
+  --shadow-modal: 0 8px 24px rgba(13,23,49,.055);
+  --shadow-btn-primary: none;
+  --shadow-btn-danger: none;
+  --shadow-btn-plain: none;
+  --shadow-btn-plain-hover: 0 1px 2px rgba(13,23,49,.05);
+  --shadow-spinner-track: rgba(13,23,49,.12);
+  --shadow-switch-thumb: 0 1px 2px rgba(13,23,49,.25);
+  --shadow-toast: 0 8px 24px rgba(13,23,49,.055);
   --shadow-logo: none;
 
-  --scrollbar-thumb: rgba(0,0,0,.12);
-  --track-bg: rgba(0,0,0,.12);
-  --bar-bg: rgba(0,0,0,.1);
-  --tbl-divider: rgba(0,0,0,.06);
-  --tbl-hover: rgba(0,0,0,.04);
-  --tbl-row-border: rgba(0,0,0,.07);
-  --dashed-border: rgba(0,0,0,.22);
-  --dropzone-bg: rgba(0,0,0,.025);
-  --dropzone-hover-bg: rgba(0,0,0,.05);
-  --dashed-border-strong: rgba(0,0,0,.45);
-  --btn-hover-bg: #ffffff;
-  --btn-danger-bg: rgba(255,59,48,.08);
-  --btn-danger-bg-hover: rgba(255,59,48,.14);
-  --btn-danger-bg-active: rgba(255,59,48,.2);
-  --btn-danger-border: rgba(255,59,48,.22);
-  --btn-danger-color: #d70015;
+  --scrollbar-thumb: rgba(13,23,49,.16);
+  --track-bg: #e8ebf0;
+  --bar-bg: #e8ebf0;
+  --tbl-divider: #e8ebf0;
+  --tbl-hover: #f9fafc;
+  --tbl-row-border: #e8ebf0;
+  --dashed-border: #d8dde4;
+  --dropzone-bg: #f9fafc;
+  --dropzone-hover-bg: #f3f4f6;
+  --dashed-border-strong: #9aa1ad;
+  --btn-hover-bg: #f9fafc;
+  --btn-danger-bg: #fff2f0;
+  --btn-danger-bg-hover: #ffe9e6;
+  --btn-danger-bg-active: #ffdcd7;
+  --btn-danger-border: #e9b7b1;
+  --btn-danger-color: #b42318;
+
+  --radius: 10px;
+  --blue: #176bc0;
+
+  /* Edgechat 语义令牌 */
+  --ec-ink: #0d1731;
+  --ec-ink-hover: #18233f;
+  --ec-brand: #176bc0;
+  --ec-selected: #edf4fc;
+  --ec-green: #168c87;
+  --ec-green-hover: #0e726e;
+  --ec-green-bg: #f1fdfb;
+  --ec-success: #147d4d;
+  --ec-success-bg: #eefbf3;
+  --ec-warning: #946200;
+  --ec-warning-bg: #fff8e6;
+  --ec-danger: #b42318;
+  --ec-danger-bg: #fff2f0;
+  --ec-panel: 10px;
+  --ec-control: 6px;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -229,7 +250,7 @@
   --btn-danger-color: #ffb3ae;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
   min-height: 100vh; color: var(--text); position: relative; overflow-x: hidden;
@@ -356,7 +377,12 @@ body {
 
 /* ── 移动端折叠 ───────────────────────── */
 @media (max-width: 760px) {
-  .layout { flex-direction: column; }
+  .layout { flex-direction: column; align-items: stretch; }
+  /* 窄屏下 #view 是 flex 子项，align-items: flex-start 会让它按 min-content 撑宽
+     （概览里 14 列图表 + 表格 min-content ≈ 570px > 视口），导致整页横向溢出。
+     显式 width:100% 让它跟随容器宽度。 */
+  #view { width: 100%; }
+  .topbar { flex-wrap: wrap; row-gap: 8px; }
   .sidebar {
     position: static; width: 100%; max-height: none;
     flex-direction: row; flex-wrap: wrap; gap: 6px;
@@ -364,7 +390,13 @@ body {
   }
   .sb-main { padding: 7px 12px; font-size: 13px; }
   .sb-main .chev { display: none; }
+  /* 分组二级菜单：窄屏下点击分组后以整行展开，保证仍能进入子页面 */
   .sb-sub { display: none; }
+  .sb-sub.open {
+    display: flex; flex-basis: 100%; flex-direction: row; flex-wrap: wrap;
+    padding-left: 0; gap: 6px; max-height: none;
+  }
+  .sb-sub button { padding: 7px 12px; font-size: 13px; }
 }
 
 /* ── 统计卡片 ─────────────────────────── */
@@ -615,6 +647,152 @@ body {
 @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 .spin { width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--shadow-spinner-track); border-top-color: var(--text); animation: spin .8s linear infinite; margin: 30px auto; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════════════════════
+   Edgechat 工作台皮肤（仅亮色主题）
+   对齐 frontend/src/styles/admin/*：浅灰蓝画布、白色细边面板、
+   10px 面板圆角 / 6px 控件圆角、深蓝主按钮 + 绿色强调、无装饰动画。
+   ═══════════════════════════════════════════════════════════ */
+:root[data-theme="light"] .orb { display: none; }
+:root[data-theme="light"] ::selection { background: rgba(23,107,192,.2); }
+:root[data-theme="light"] body {
+  font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+:root[data-theme="light"] .wrap { max-width: 1440px; padding-top: 0; }
+:root[data-theme="light"] .layout { gap: 24px; }
+
+/* ── 顶栏：64px 白底 + 底部细分割线 ───── */
+:root[data-theme="light"] .topbar {
+  top: 0; min-height: 64px; padding: 0 20px; margin-bottom: 24px;
+  border: 0; border-bottom: 1px solid var(--stroke); border-radius: 0;
+  box-shadow: none; background: #ffffff;
+}
+:root[data-theme="light"] .logo { background: var(--ec-brand); }
+:root[data-theme="light"] .topbar h1 { font-size: 16px; }
+:root[data-theme="light"] .traffic-pill { border-radius: var(--ec-control); background: var(--sf-soft); }
+:root[data-theme="light"] .traffic-pill:hover { background: var(--sf); }
+:root[data-theme="light"] .traffic-pill.danger { color: var(--ec-danger); }
+:root[data-theme="light"] .traffic-pill .bar i { background: var(--ec-green); }
+:root[data-theme="light"] .traffic-pill.danger .bar i { background: #d97706; }
+
+/* ── 侧栏：256px 白色面板 ─────────────── */
+:root[data-theme="light"] .sidebar {
+  width: 256px; padding: 10px 8px; border-radius: var(--ec-panel);
+  top: 80px; max-height: calc(100vh - 100px);
+}
+:root[data-theme="light"] .sb-main { border-radius: var(--ec-control); color: var(--text-2); }
+:root[data-theme="light"] .sb-main:hover { background: var(--sf); color: var(--text); }
+:root[data-theme="light"] .sb-main.open { background: var(--sf); color: var(--text); box-shadow: none; }
+:root[data-theme="light"] .sb-sub button { border-radius: var(--ec-control); }
+:root[data-theme="light"] .sb-sub button.active {
+  background: var(--ec-selected); color: var(--ec-brand); box-shadow: none;
+}
+
+/* ── 面板 ─────────────────────────────── */
+:root[data-theme="light"] .glass,
+:root[data-theme="light"] .stat-card,
+:root[data-theme="light"] .section,
+:root[data-theme="light"] .group {
+  border-radius: var(--ec-panel); border: 1px solid var(--stroke);
+  box-shadow: var(--shadow-glass); background: #ffffff;
+}
+:root[data-theme="light"] .section { border: 0; background: transparent; box-shadow: none; }
+:root[data-theme="light"] .section-title h2 { font-size: 16px; font-weight: 700; }
+:root[data-theme="light"] .stat-card { animation: none; }
+:root[data-theme="light"] .stat-card .value { font-size: 26px; font-weight: 700; }
+:root[data-theme="light"] .upload-item { border-radius: var(--ec-panel); }
+:root[data-theme="light"] .dropzone { border-radius: var(--ec-panel); }
+:root[data-theme="light"] .ficon { border-radius: 8px; background: var(--sf-soft); }
+:root[data-theme="light"] .banner {
+  border-radius: var(--ec-panel); background: var(--ec-warning-bg); border-color: #f0dcae;
+}
+:root[data-theme="light"] .banner .t { color: var(--ec-warning); }
+:root[data-theme="light"] .banner .d { color: #a9802c; }
+
+/* ── 按钮 ─────────────────────────────── */
+:root[data-theme="light"] .btn {
+  border-radius: var(--ec-control); padding: 9px 15px; font-size: 13.5px;
+  background: #ffffff; border: 1px solid var(--stroke-strong); color: var(--text);
+  backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: var(--shadow-btn-plain);
+}
+:root[data-theme="light"] .btn:hover {
+  background: var(--sf-soft); transform: none; box-shadow: var(--shadow-btn-plain-hover);
+}
+:root[data-theme="light"] .btn:active { transform: none; }
+:root[data-theme="light"] .btn.primary {
+  background: var(--ec-ink); border-color: var(--ec-ink); color: #ffffff; box-shadow: none;
+}
+:root[data-theme="light"] .btn.primary:hover { background: var(--ec-ink-hover); filter: none; transform: none; }
+:root[data-theme="light"] .btn.primary:active { transform: none; }
+:root[data-theme="light"] .btn.danger {
+  background: var(--ec-danger-bg); border-color: var(--btn-danger-border); color: var(--ec-danger);
+}
+:root[data-theme="light"] .btn.danger:hover { background: var(--btn-danger-bg-hover); box-shadow: none; }
+:root[data-theme="light"] .btn.sm { border-radius: var(--ec-control); }
+
+/* ── 表单控件：6px 圆角 + 绿色聚焦环 ──── */
+:root[data-theme="light"] .field input,
+:root[data-theme="light"] .field select,
+:root[data-theme="light"] .group .row input[type=number],
+:root[data-theme="light"] .group .row input[type=text],
+:root[data-theme="light"] .link-box input {
+  border-radius: var(--ec-control); padding: 9px 12px; font-size: 14px;
+  background: #ffffff; border: 1px solid var(--stroke-strong);
+}
+:root[data-theme="light"] .field input:focus,
+:root[data-theme="light"] .field select:focus,
+:root[data-theme="light"] .group .row input[type=number]:focus,
+:root[data-theme="light"] .group .row input[type=text]:focus {
+  border-color: var(--ec-green); box-shadow: 0 0 0 3px rgba(22,140,135,.14);
+}
+:root[data-theme="light"] .switch input:checked + .track { background: var(--ec-green); }
+
+/* ── 表格 ─────────────────────────────── */
+:root[data-theme="light"] .tbl { font-size: 13px; }
+:root[data-theme="light"] .tbl th {
+  font-size: 12px; font-weight: 600; color: var(--text-3); border-bottom: 1px solid var(--stroke);
+}
+:root[data-theme="light"] .tbl td { border-bottom: 1px solid var(--stroke); }
+:root[data-theme="light"] .tag { border-radius: var(--ec-control); }
+:root[data-theme="light"] .tag.active { background: var(--ec-success-bg); color: var(--ec-success); }
+:root[data-theme="light"] .tag.expired,
+:root[data-theme="light"] .tag.maxed { background: var(--ec-warning-bg); color: var(--ec-warning); }
+:root[data-theme="light"] .tag.revoked { background: var(--ec-danger-bg); color: var(--ec-danger); }
+
+/* ── 图表 / 进度 ──────────────────────── */
+:root[data-theme="light"] .chart .bar { background: linear-gradient(180deg, #5b9bd8, #176bc0); }
+:root[data-theme="light"] .chart .bar:hover { background: linear-gradient(180deg, #4a8ecb, #125ea9); }
+:root[data-theme="light"] .progress i,
+:root[data-theme="light"] .upload-item .prog i { background: var(--ec-green); }
+:root[data-theme="light"] .progress.hot i { background: #d97706; }
+
+/* ── 弹层 / 提示 ──────────────────────── */
+:root[data-theme="light"] .modal-mask { background: rgba(13,23,49,.3); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+:root[data-theme="light"] .modal { border-radius: 12px; animation: fadeIn .2s both; }
+:root[data-theme="light"] .modal .actions .btn { border-radius: var(--ec-control); padding: 11px; font-size: 14px; }
+:root[data-theme="light"] .toast { border-radius: var(--ec-control); animation: fadeIn .2s both; }
+:root[data-theme="light"] .toast.ok { border-color: #b7e4cd; }
+:root[data-theme="light"] .toast.err { border-color: #e9b7b1; }
+
+/* ── 登录页 ───────────────────────────── */
+:root[data-theme="light"] .login-card {
+  border-radius: 12px; padding: 36px 32px 30px; animation: none;
+  box-shadow: 0 8px 24px rgba(13,23,49,.06);
+}
+:root[data-theme="light"] .login-card .logo { border-radius: 10px; }
+:root[data-theme="light"] .login-card h1 { font-size: 22px; font-weight: 700; }
+:root[data-theme="light"] .login-card input {
+  border-radius: var(--ec-control); padding: 12px 14px; font-size: 15px; text-align: left;
+  background: #ffffff; border: 1px solid var(--stroke-strong);
+}
+:root[data-theme="light"] .login-card input:focus {
+  border-color: var(--ec-green); box-shadow: 0 0 0 3px rgba(22,140,135,.14);
+}
+:root[data-theme="light"] .login-card .btn {
+  border-radius: var(--ec-control); padding: 12px; font-size: 14px;
+}
+:root[data-theme="light"] .login-card .err { color: var(--ec-danger); }
 
 .actions-cell { display: flex; gap: 6px; }
 @media (max-width: 720px) {

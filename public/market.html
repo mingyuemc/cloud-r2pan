@@ -104,6 +104,50 @@ footer a{color:rgba(45,156,151,.8);text-decoration:none}
 
 .lang-btn{margin-left:10px;padding:4px 13px;border-radius:11px;border:1px solid rgba(26,35,50,.12);background:rgba(26,35,50,.09);color:#1a2332;font-size:12px;cursor:pointer;backdrop-filter:blur(10px);transition:all .15s}
 .lang-btn:hover{background:rgba(26,35,50,.14);color:#1a2332}
+/* ═══════════════════════════════════════════════════════════
+   Edgechat 视觉对齐（chat.xxkfj.kdns.fr）
+   ═══════════════════════════════════════════════════════════ */
+body{font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:#1f2521}
+.brand-icon,.icon{
+  background:rgba(252,252,252,.55);border-color:rgba(255,255,255,.55);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.search input,.sort select{
+  border-radius:14px;color:#1f2521;border-color:rgba(255,255,255,.55);
+  background:rgba(252,252,252,.55);
+  backdrop-filter:blur(30px) saturate(125%);-webkit-backdrop-filter:blur(30px) saturate(125%);
+  box-shadow:0 8px 24px rgba(0,0,0,.12),inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.search input:focus{border-color:rgba(45,156,151,.42);box-shadow:0 0 0 3px rgba(45,156,151,.12)}
+.search input::placeholder{color:rgba(31,37,33,.52)}
+.card{
+  border-radius:20px;border-color:rgba(255,255,255,.55);
+  background:rgba(252,252,252,.55);
+  backdrop-filter:blur(30px) saturate(125%);-webkit-backdrop-filter:blur(30px) saturate(125%);
+  box-shadow:0 8px 24px rgba(0,0,0,.12),inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.card:hover{
+  transform:translateY(-2px);border-color:rgba(45,156,151,.4);
+  box-shadow:0 12px 32px rgba(0,0,0,.14),inset 0 0 0 1px rgba(255,255,255,.22);
+}
+.pagination button{
+  border-radius:12px;color:#1f2521;border-color:rgba(255,255,255,.55);
+  background:rgba(252,252,252,.55);
+  backdrop-filter:blur(30px) saturate(125%);-webkit-backdrop-filter:blur(30px) saturate(125%);
+}
+.pagination button:hover:not(:disabled){background:rgba(252,252,252,.82);transform:translateY(-1px)}
+.pagination button.active{
+  background:linear-gradient(180deg,rgba(90,143,203,.92),rgba(69,121,186,.88));
+  border-color:transparent;color:#fffaf2;box-shadow:0 4px 16px rgba(90,143,203,.22);
+}
+.pill{border-radius:999px;background:rgba(23,133,124,.12);border-color:rgba(23,133,124,.28);color:#17857c}
+.lang-btn{
+  border-radius:12px;color:#1f2521;border-color:rgba(255,255,255,.55);
+  background:rgba(252,252,252,.55);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+.lang-btn:hover{background:rgba(252,252,252,.85);color:#1f2521}
+.spinner{border-top-color:#17857c}
 </style>
 </head>
 <body>

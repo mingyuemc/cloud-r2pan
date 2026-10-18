@@ -234,6 +234,41 @@ h1 { font-size: 21px; font-weight: 700; letter-spacing: -.02em; word-break: brea
 .code-query-result.err { background: rgba(215,0,21,.10); border-color: rgba(215,0,21,.28); color: #c01a2b; }
 .code-progress { margin-top: 8px; height: 3px; background: rgba(26,35,50,.12); border-radius: 2px; overflow: hidden; }
 .code-progress i { display: block; height: 100%; border-radius: 2px; background: linear-gradient(90deg,#1f9d55,#5a8fcb); }
+/* ═══════════════════════════════════════════════════════════
+   Edgechat 视觉对齐（chat.xxkfj.kdns.fr）
+   ═══════════════════════════════════════════════════════════ */
+body { font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; color: #1f2521; }
+.card {
+  border-radius: 24px; border-color: rgba(255,255,255,.55);
+  background: rgba(252,252,252,.55);
+  backdrop-filter: blur(30px) saturate(125%); -webkit-backdrop-filter: blur(30px) saturate(125%);
+  box-shadow: 0 8px 24px rgba(0,0,0,.12), inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.file-icon {
+  border-radius: 24px; border-color: rgba(255,255,255,.55);
+  background: rgba(252,252,252,.55);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.18), 0 8px 24px rgba(0,0,0,.1);
+}
+.stat { border-radius: 14px; border-color: rgba(255,255,255,.5); background: rgba(255,255,255,.42); }
+.btn {
+  border-radius: 14px; padding: 15px; font-size: 15px; color: #fffaf2;
+  background: linear-gradient(180deg, rgba(90,143,203,.92), rgba(69,121,186,.88));
+  box-shadow: 0 4px 16px rgba(90,143,203,.22);
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(90,143,203,.3); }
+.code-modal {
+  border-radius: 20px; border-color: rgba(255,255,255,.6);
+  background: rgba(252,252,252,.72);
+  backdrop-filter: blur(30px) saturate(125%); -webkit-backdrop-filter: blur(30px) saturate(125%);
+}
+.ts-box, .oauth-block { border-radius: 14px; }
+.warn { border-radius: 14px; }
+.lang-btn {
+  border-radius: 12px; color: #1f2521; border-color: rgba(255,255,255,.5);
+  background: rgba(252,252,252,.55);
+}
+.lang-btn:hover { background: rgba(252,252,252,.85); color: #1f2521; }
+.spinner { border-top-color: #17857c; }
 </style>
 </head>
 <body>

@@ -139,6 +139,61 @@ footer{text-align:center;font-size:12px;color:rgba(26,35,50,.44);margin-top:40px
 footer a{color:rgba(45,156,151,.8);text-decoration:none}
 .lang-btn{margin-left:10px;padding:6px 14px;border-radius:11px;border:1px solid rgba(26,35,50,.15);background:rgba(26,35,50,.09);color:#1a2332;font-size:12px;cursor:pointer;transition:all .15s}
 .lang-btn:hover{background:rgba(26,35,50,.14)}
+/* ═══════════════════════════════════════════════════════════
+   Edgechat 视觉对齐（chat.xxkfj.kdns.fr）
+   玻璃面 rgba(252,252,252,.55)+blur(30px)saturate(125%)、窗口圆角 20px、
+   控件圆角 14px、蓝色主按钮、绿色强调、隐藏白玻璃描边。
+   ═══════════════════════════════════════════════════════════ */
+body{font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:#1f2521}
+.auth-card,.quota,.row,.uprog{
+  background:rgba(252,252,252,.55);
+  backdrop-filter:blur(30px) saturate(125%);-webkit-backdrop-filter:blur(30px) saturate(125%);
+  border-color:rgba(255,255,255,.55);
+  box-shadow:0 8px 24px rgba(0,0,0,.12),inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.auth-card{border-radius:20px;padding:36px 32px 30px}
+.quota{border-radius:20px}
+.row{border-radius:20px}
+.uprog{border-radius:20px}
+.auth-icon,.logo,.row .ic{
+  background:rgba(252,252,252,.55);border-color:rgba(255,255,255,.55);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.auth-icon{border-radius:16px}.logo{border-radius:14px}.row .ic{border-radius:12px}
+input,select{
+  border-radius:14px;border-color:rgba(88,107,124,.22);
+  background:linear-gradient(180deg,rgba(255,255,255,.56),rgba(236,243,249,.4)),rgba(228,236,243,.26);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.52),0 1px 2px rgba(88,107,124,.06);
+}
+input:focus,select:focus{border-color:rgba(45,156,151,.42);box-shadow:0 0 0 3px rgba(45,156,151,.12)}
+input::placeholder{color:rgba(31,37,33,.52)}
+.btn{
+  border-radius:14px;padding:12px 18px;font-size:14px;
+  background:linear-gradient(180deg,rgba(90,143,203,.92),rgba(69,121,186,.88));color:#fffaf2;
+  box-shadow:0 4px 16px rgba(90,143,203,.22);
+  transition:transform .28s cubic-bezier(.37,0,.63,1),box-shadow .28s cubic-bezier(.37,0,.63,1);
+}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(90,143,203,.3)}
+.btn.danger{background:linear-gradient(180deg,rgba(189,87,74,.9),rgba(161,60,50,.86));box-shadow:0 4px 16px rgba(173,75,64,.18)}
+.btn.ghost{
+  background:linear-gradient(180deg,rgba(255,255,255,.44),rgba(255,255,255,.16));
+  border:1px solid rgba(255,255,255,.5);color:#1f2521;
+  box-shadow:0 2px 10px rgba(88,107,124,.06);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+.btn.sm{border-radius:10px}
+.tabs button{border-radius:14px;border-color:rgba(88,107,124,.22);background:rgba(255,255,255,.42);color:rgba(31,37,33,.55)}
+.tabs button.active{background:rgba(23,133,124,.12);border-color:rgba(23,133,124,.32);color:#17857c;box-shadow:none;font-weight:600}
+.drop{border-radius:18px;border-color:rgba(88,107,124,.28);background:rgba(255,255,255,.32)}
+.drop:hover,.drop.over{border-color:rgba(23,133,124,.5);background:rgba(23,133,124,.07);color:#1f2521}
+.chip{border-radius:10px;background:rgba(255,255,255,.42);border-color:rgba(88,107,124,.22);color:rgba(31,37,33,.55)}
+.modal{
+  border-radius:20px;background:rgba(252,252,252,.72);
+  backdrop-filter:blur(30px) saturate(125%);-webkit-backdrop-filter:blur(30px) saturate(125%);
+  border-color:rgba(255,255,255,.6);box-shadow:0 12px 36px rgba(25,42,40,.14);
+}
+.toast{border-radius:14px;background:rgba(252,252,252,.72)}
+.bar i{background:linear-gradient(90deg,rgba(90,143,203,.9),#17857c)}
 </style>
 </head>
 <body>

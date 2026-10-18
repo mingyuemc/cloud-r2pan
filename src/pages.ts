@@ -128,8 +128,8 @@ export function serveLandingPage(): Response {
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{min-height:100%}
 body{
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;
-  color:#1a2332;min-height:100vh;position:relative;overflow-x:hidden;padding:24px 20px 70px;
+  font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  color:#1f2521;min-height:100vh;position:relative;overflow-x:hidden;padding:24px 20px 70px;
   background:radial-gradient(circle at 12% 8%,rgba(45,156,151,.20),transparent 32%),radial-gradient(circle at 88% 16%,rgba(90,143,203,.18),transparent 34%),radial-gradient(circle at 76% 88%,rgba(90,143,203,.13),transparent 30%),radial-gradient(circle at 28% 72%,rgba(45,156,151,.11),transparent 26%),linear-gradient(180deg,#eef5f9 0%,#e6eef4 100%);
 }
 .orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:.16;pointer-events:none;animation:drift 18s ease-in-out infinite alternate}
@@ -140,36 +140,36 @@ body{
 @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 .wrap{min-height:calc(100vh - 94px);display:flex;align-items:center;justify-content:center}
 .card{
-  width:100%;max-width:420px;padding:32px 30px 26px;border-radius:28px;position:relative;z-index:1;
-  background:linear-gradient(145deg,rgba(255,255,255,.78),rgba(255,255,255,.5));
-  backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);
-  border:1px solid rgba(26,35,50,.12);
-  box-shadow:0 22px 55px rgba(26,35,50,.18),inset 0 1px 0 rgba(255,255,255,.6);
-  animation:rise .6s cubic-bezier(.22,1.2,.36,1) both;
+  width:100%;max-width:420px;padding:32px 30px 26px;border-radius:20px;position:relative;z-index:1;
+  background:rgba(252,252,252,.55);
+  backdrop-filter:blur(30px) saturate(125%);-webkit-backdrop-filter:blur(30px) saturate(125%);
+  border:1px solid rgba(255,255,255,.55);
+  box-shadow:0 8px 24px rgba(0,0,0,.12),inset 0 0 0 1px rgba(255,255,255,.18);
+  animation:rise .48s cubic-bezier(.22,1,.36,1) both;
 }
 .head{display:flex;align-items:center;gap:12px;margin-bottom:22px}
-.logo{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(255,255,255,.6));border:1px solid rgba(26,35,50,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
+.logo{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(252,252,252,.55);border:1px solid rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
 .head h1{font-size:17px;font-weight:700;letter-spacing:-.02em}
-.head .sub{font-size:12px;color:rgba(26,35,50,.62);margin-top:2px}
-.tabs{display:flex;gap:6px;padding:5px;border-radius:14px;background:rgba(26,35,50,.06);margin-bottom:20px}
-.tabs button{flex:1;padding:10px;border:none;border-radius:10px;background:transparent;color:rgba(26,35,50,.62);font-size:14px;font-weight:600;cursor:pointer;transition:all .18s}
-.tabs button.active{background:#fff;color:#1a2332;box-shadow:0 2px 8px rgba(26,35,50,.10)}
+.head .sub{font-size:12px;color:rgba(31,37,33,.55);margin-top:2px}
+.tabs{display:flex;gap:6px;padding:4px;border-radius:12px;background:rgba(255,255,255,.42);border:1px solid rgba(88,107,124,.18);margin-bottom:20px}
+.tabs button{flex:1;padding:10px;border:none;border-radius:9px;background:transparent;color:rgba(31,37,33,.55);font-size:14px;font-weight:600;cursor:pointer;transition:all .18s}
+.tabs button.active{background:#ffffff;color:#1f2521;box-shadow:0 1px 2px rgba(13,23,49,.08)}
 .field{margin-bottom:14px;text-align:left}
-.field label{display:block;font-size:12px;color:rgba(26,35,50,.62);margin-bottom:6px;padding-left:4px}
-input{width:100%;padding:13px 16px;border-radius:14px;font-size:15px;color:#1a2332;outline:none;background:rgba(255,255,255,.72);border:1px solid rgba(26,35,50,.14);transition:border-color .2s,box-shadow .2s}
-input::placeholder{color:rgba(26,35,50,.44)}
-input:focus{border-color:rgba(45,156,151,.7);box-shadow:0 0 0 4px rgba(45,156,151,.18)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px 22px;border-radius:14px;border:none;cursor:pointer;font-size:15px;font-weight:600;color:#fff;background:linear-gradient(180deg,#3fb3ad,#2d9c97);box-shadow:0 12px 28px rgba(45,156,151,.32);transition:transform .15s,opacity .2s}
-.btn:hover{transform:translateY(-2px)}
-.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.field label{display:block;font-size:12px;color:rgba(31,37,33,.55);margin-bottom:6px;padding-left:4px}
+input{width:100%;padding:12px 14px;border-radius:14px;font-size:15px;color:#1f2521;outline:none;background:linear-gradient(180deg,rgba(255,255,255,.56),rgba(236,243,249,.4)),rgba(228,236,243,.26);border:1px solid rgba(88,107,124,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.52),0 1px 2px rgba(88,107,124,.06);transition:border-color .2s,box-shadow .2s}
+input::placeholder{color:rgba(31,37,33,.52)}
+input:focus{border-color:rgba(45,156,151,.42);box-shadow:0 0 0 3px rgba(45,156,151,.12)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px 20px;border-radius:14px;border:none;cursor:pointer;font-size:14px;font-weight:600;color:#fffaf2;background:linear-gradient(180deg,rgba(90,143,203,.92),rgba(69,121,186,.88));box-shadow:0 4px 16px rgba(90,143,203,.22);transition:transform .28s cubic-bezier(.37,0,.63,1),box-shadow .28s cubic-bezier(.37,0,.63,1)}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(90,143,203,.3)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
 .msg{margin-top:14px;font-size:13px;min-height:18px;text-align:center}
-.msg.err{color:#c01a2b}.msg.ok{color:#1f7a75}
+.msg.err{color:#b42318}.msg.ok{color:#17857c}
 .links{margin-top:18px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;font-size:13px}
-.links a{color:#2d9c97;text-decoration:none;cursor:pointer}
-.links a.muted{color:rgba(26,35,50,.5)}
+.links a{color:#17857c;text-decoration:none;cursor:pointer}
+.links a.muted{color:rgba(31,37,33,.5)}
 .hidden{display:none!important}
-.lang-btn{position:fixed;top:18px;right:18px;padding:6px 14px;border-radius:11px;border:1px solid rgba(26,35,50,.14);background:rgba(255,255,255,.6);color:#1a2332;font-size:12px;cursor:pointer}
-footer{position:fixed;bottom:20px;left:0;right:0;text-align:center;font-size:12px;color:rgba(26,35,50,.42)}
+.lang-btn{position:fixed;top:18px;right:18px;padding:6px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.5);background:rgba(252,252,252,.55);color:#1f2521;font-size:12px;cursor:pointer}
+footer{position:fixed;bottom:20px;left:0;right:0;text-align:center;font-size:12px;color:rgba(31,37,33,.42)}
 </style>
 </head>
 <body>
@@ -306,7 +306,7 @@ export function errorPage(
     503: "🛑",
   };
   const loginBtn = opts.oauth_login_url
-    ? `<div style="margin-top:28px"><a href="${esc(opts.oauth_login_url)}" style="display:inline-block;padding:14px 40px;border-radius:18px;background:linear-gradient(180deg,#3fb3ad,#2d9c97);color:#fff;text-decoration:none;font-weight:600;font-size:16px;box-shadow:0 12px 28px rgba(45,156,151,.32);transition:transform .15s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">${lang === "zh" ? "登录下载" : "Login to Download"}</a></div>`
+    ? `<div style="margin-top:28px"><a href="${esc(opts.oauth_login_url)}" style="display:inline-block;padding:12px 34px;border-radius:14px;background:linear-gradient(180deg,rgba(90,143,203,.92),rgba(69,121,186,.88));color:#fffaf2;text-decoration:none;font-weight:600;font-size:15px;box-shadow:0 4px 16px rgba(90,143,203,.22);transition:transform .28s cubic-bezier(.37,0,.63,1),box-shadow .28s cubic-bezier(.37,0,.63,1)" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 8px 24px rgba(90,143,203,.3)'" onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 16px rgba(90,143,203,.22)'">${lang === "zh" ? "登录下载" : "Login to Download"}</a></div>`
     : "";
   const html = `<!DOCTYPE html>
 <html lang="${lang === "zh" ? "zh-CN" : "en"}">
@@ -318,9 +318,9 @@ export function errorPage(
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { height: 100%; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  padding: 24px; color: #1a2332; overflow: hidden; position: relative;
+  padding: 24px; color: #1f2521; overflow: hidden; position: relative;
   background: radial-gradient(circle at 12% 8%, rgba(45,156,151,.20), transparent 32%), radial-gradient(circle at 88% 16%, rgba(90,143,203,.18), transparent 34%), radial-gradient(circle at 76% 88%, rgba(90,143,203,.13), transparent 30%), radial-gradient(circle at 28% 72%, rgba(45,156,151,.11), transparent 26%), linear-gradient(180deg, #eef5f9 0%, #e6eef4 100%);
 }
 .orb { position: fixed; border-radius: 50%; filter: blur(90px); opacity: .18; pointer-events: none; animation: drift 18s ease-in-out infinite alternate; }
@@ -330,25 +330,25 @@ body {
 @keyframes drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(6vw, -5vh) scale(1.12); } }
 .card {
   position: relative; width: 100%; max-width: 420px; text-align: center;
-  padding: 56px 36px 44px; border-radius: 32px;
-  background: linear-gradient(145deg, rgba(255,255,255,.78), rgba(255,255,255,.5));
-  backdrop-filter: blur(32px) saturate(180%); -webkit-backdrop-filter: blur(32px) saturate(180%);
-  border: 1px solid rgba(26,35,50,.12);
-  box-shadow: 0 22px 55px rgba(26,35,50,.18), inset 0 1px 0 rgba(255,255,255,.6);
-  animation: rise .6s cubic-bezier(.22,1.2,.36,1) both;
+  padding: 56px 36px 44px; border-radius: 20px;
+  background: rgba(252,252,252,.55);
+  backdrop-filter: blur(30px) saturate(125%); -webkit-backdrop-filter: blur(30px) saturate(125%);
+  border: 1px solid rgba(255,255,255,.55);
+  box-shadow: 0 8px 24px rgba(0,0,0,.12), inset 0 0 0 1px rgba(255,255,255,.18);
+  animation: rise .48s cubic-bezier(.22,1,.36,1) both;
 }
 @keyframes rise { from { opacity: 0; transform: translateY(24px) scale(.96); } to { opacity: 1; transform: none; } }
 .icon {
-  width: 84px; height: 84px; margin: 0 auto 22px; border-radius: 26px;
+  width: 84px; height: 84px; margin: 0 auto 22px; border-radius: 20px;
   display: flex; align-items: center; justify-content: center; font-size: 42px;
-  background: linear-gradient(145deg, rgba(255,255,255,.9), rgba(255,255,255,.6));
-  border: 1px solid rgba(26,35,50,.14);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 10px 26px rgba(26,35,50,.14);
+  background: rgba(252,252,252,.55);
+  border: 1px solid rgba(255,255,255,.55);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.18), 0 8px 24px rgba(0,0,0,.1);
 }
 h1 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 12px; }
-p { font-size: 15px; line-height: 1.65; color: rgba(26,35,50,.62); }
-.code { margin-top: 22px; font-size: 13px; color: rgba(26,35,50,.44); font-family: ui-monospace, "SF Mono", monospace; }
-.brand { position: fixed; bottom: 22px; left: 0; right: 0; text-align: center; font-size: 13px; color: rgba(26,35,50,.42); letter-spacing: .08em; }
+p { font-size: 15px; line-height: 1.65; color: rgba(31,37,33,.6); }
+.code { margin-top: 22px; font-size: 13px; color: rgba(31,37,33,.42); font-family: ui-monospace, "SF Mono", monospace; }
+.brand { position: fixed; bottom: 22px; left: 0; right: 0; text-align: center; font-size: 13px; color: rgba(31,37,33,.42); letter-spacing: .08em; }
 </style>
 </head>
 <body>
